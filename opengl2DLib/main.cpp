@@ -43,6 +43,7 @@ int main()
 
 		renderer.renderText({ 0,100 }, "text Text", 9, f, Colors_Red);
 		renderer.renderText({ 0,200 }, "text Vlad", 9, f, Colors_Blue);
+		renderer.renderText({ 0,300 }, "text Mihai", 10, f, Colors_Green);
 
 		renderer.renderRectangle({ 100,150, 100, 100 }, {0,0}, 0, texture);
 
