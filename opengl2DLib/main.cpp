@@ -42,8 +42,6 @@ int main()
 		renderer.renderRectangle({ 10,10, 100, 100 }, colors, {}, 30);
 
 		renderer.renderText({ 0,100 }, "text Text", 9, f, Colors_Red);
-		renderer.renderText({ 20,200 }, "text Text", 9, f, Colors_Red);
-		
 
 		renderer.renderRectangle({ 100,150, 100, 100 }, {0,0}, 0, texture);
 
