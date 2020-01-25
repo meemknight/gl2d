@@ -22,7 +22,7 @@ namespace gl2d
 		struct ShaderProgram
 		{
 			GLuint id;
-			int    u_sampler;
+			int u_sampler;
 		};
 	
 		float positionToScreenCoordsX(const float position, float w);
@@ -70,14 +70,7 @@ namespace gl2d
 		Texture() {};
 		Texture(const char *file) { loadFromFile(file); }
 
-		glm::ivec2 GetSize(Texture t)
-		{
-			glm::ivec2 s;
-			glBindTexture(GL_TEXTURE_2D, t.id);
-			glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &s.x);
-			glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &s.y);
-			return s;
-		}
+		glm::ivec2 GetSize();
 
 		//Note: This function expects a buffer of bytes in GL_RGBA format
 		void createFromBuffer(const char* image_data, const int width, const int height);
@@ -113,8 +106,8 @@ namespace gl2d
 	{
 		Texture           texture;
 		glm::ivec2        size;
-		stbtt_packedchar* packed_chars_buffer;
-		int               packed_chars_buffer_size;
+		stbtt_packedchar* packedCharsBuffer;
+		int               packedCharsBufferSize;
 		float             max_height;
 
 		Font() {}
@@ -221,6 +214,9 @@ namespace gl2d
 		
 		void renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = DefaultTextureCoords);
 		void renderRectangleAbsRotation(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = DefaultTextureCoords);
+
+		void renderRectangle(const Rect transforms, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = DefaultTextureCoords);
+		void renderRectangleAbsRotation(const Rect transforms, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = DefaultTextureCoords);
 
 		void renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin = { 0,0 }, const float rotation = 0);
 		void renderRectangleAbsRotation(const Rect transforms, const Color4f colors[4], const glm::vec2 origin = {0,0}, const float rotation = 0);

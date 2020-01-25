@@ -20,6 +20,9 @@ int main()
 	renderer.create();
 	
 	gl2d::Font f("roboto_black.ttf");
+	gl2d::Texture texture("test.jpg");
+
+	std::cout << texture.GetSize().x;
 
 	while (!glfwWindowShouldClose(wind))
 	{
@@ -33,10 +36,14 @@ int main()
 		gl2d::enableNecessaryGLFeatures();
 		renderer.resetCameraAndShader();
 
+		renderer.renderRectangle({ 100,350, 100, 100 }, { 0,0 }, 0, texture);
+
 		glm::vec4 colors[4] = { Colors_Orange,Colors_Orange ,Colors_Orange ,Colors_Orange };
 		renderer.renderRectangle({ 10,10, 100, 100 }, colors, {}, 30);
 
 		renderer.renderText({ 0,100 }, "text Text", 9, f, Colors_Red);
+
+		renderer.renderRectangle({ 100,150, 100, 100 }, {0,0}, 0, texture);
 
 		renderer.flush();
 

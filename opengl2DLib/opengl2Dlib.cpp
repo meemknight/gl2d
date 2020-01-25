@@ -69,7 +69,7 @@ namespace gl2d
 			float xoffset = 0;
 			float yoffset = 0;
 
-			stbtt_GetPackedQuad(font.packed_chars_buffer, font.size.x, font.size.y, c - ' ', &xoffset, &yoffset, &quad, 1);
+			stbtt_GetPackedQuad(font.packedCharsBuffer, font.size.x, font.size.y, c - ' ', &xoffset, &yoffset, &quad, 1);
 
 			return quad;
 		}
@@ -249,37 +249,37 @@ namespace gl2d
 		size.x = 2000,
 		size.y = 2000,
 		max_height = 0,
-		packed_chars_buffer_size = sizeof(stbtt_packedchar) * ('~' - ' ');
+		packedCharsBufferSize = sizeof(stbtt_packedchar) * ('~' - ' ');
 
 		//STB TrueType will give us a one channel buffer of the font that we then convert to RGBA for OpenGL
-		const size_t font_monochrome_buffer_size = size.x * size.y;
-		const size_t font_rgba_buffer_size = size.x * size.y * 4;
+		const size_t fontMonochromeBufferSize = size.x * size.y;
+		const size_t fontRgbaBufferSize = size.x * size.y * 4;
 
-		unsigned char* font_monochrome_buffer = new unsigned char[font_monochrome_buffer_size];
-		unsigned char* font_rgba_buffer = new unsigned char[font_rgba_buffer_size];
+		unsigned char* fontMonochromeBuffer = new unsigned char[fontMonochromeBufferSize];
+		unsigned char* fontRgbaBuffer = new unsigned char[fontRgbaBufferSize];
 
-		packed_chars_buffer = new stbtt_packedchar[packed_chars_buffer_size];
+		packedCharsBuffer = new stbtt_packedchar[packedCharsBufferSize];
 
 		stbtt_pack_context stbtt_context;
-		stbtt_PackBegin(&stbtt_context, font_monochrome_buffer, size.x, size.y, 0, 1, NULL);
+		stbtt_PackBegin(&stbtt_context, fontMonochromeBuffer, size.x, size.y, 0, 1, NULL);
 		stbtt_PackSetOversampling(&stbtt_context, 2, 2);
-		stbtt_PackFontRange(&stbtt_context, ttf_data, 0, 65, ' ', '~' - ' ', packed_chars_buffer);
+		stbtt_PackFontRange(&stbtt_context, ttf_data, 0, 65, ' ', '~' - ' ', packedCharsBuffer);
 		stbtt_PackEnd(&stbtt_context);
 
-		for (int i = 0; i < font_monochrome_buffer_size; i++)
+		for (int i = 0; i < fontMonochromeBufferSize; i++)
 		{
 
-			font_rgba_buffer[(i * 4)] = font_monochrome_buffer[i];
-			font_rgba_buffer[(i * 4) + 1] = font_monochrome_buffer[i];
-			font_rgba_buffer[(i * 4) + 2] = font_monochrome_buffer[i];
+			fontRgbaBuffer[(i * 4)] = fontMonochromeBuffer[i];
+			fontRgbaBuffer[(i * 4) + 1] = fontMonochromeBuffer[i];
+			fontRgbaBuffer[(i * 4) + 2] = fontMonochromeBuffer[i];
 
-			if (font_monochrome_buffer[i] > 1)
+			if (fontMonochromeBuffer[i] > 1)
 			{
-				font_rgba_buffer[(i * 4) + 3] = 255;
+				fontRgbaBuffer[(i * 4) + 3] = 255;
 			}
 			else
 			{
-				font_rgba_buffer[(i * 4) + 3] = 0;
+				fontRgbaBuffer[(i * 4) + 3] = 0;
 			}
 		}
 
@@ -287,7 +287,7 @@ namespace gl2d
 		{
 			glGenTextures(1, &texture.id);
 			glBindTexture(GL_TEXTURE_2D, texture.id);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, font_rgba_buffer);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, fontRgbaBuffer);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
@@ -295,8 +295,8 @@ namespace gl2d
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		}
 
-		delete[] font_monochrome_buffer;
-		delete[] font_rgba_buffer;
+		delete[] fontMonochromeBuffer;
+		delete[] fontRgbaBuffer;
 
 		for (char c = ' '; c <= '~'; c++)
 		{
@@ -313,6 +313,16 @@ namespace gl2d
 	void Font::createFromFile(const char * file)
 	{
 		std::ifstream fileFont(file, std::ios::binary);
+
+		if (!fileFont.is_open())
+		{
+			char c[256] = { 0 };
+			strcat_s(c, "error openning: ");
+			strcat_s(c+strlen(c), 200,file);
+			errorFunc(c);
+			return;
+		}
+
 		int fileSize = 0;
 		fileFont.seekg(0, std::ios::end);
 		fileSize = fileFont.tellg();
@@ -431,8 +441,8 @@ namespace gl2d
 		//We need to flip texture_transforms.y
 		const float transformsY = transforms.y * -1;
 
-		glm::vec2 v1 = { transforms.x,                            transformsY };
-		glm::vec2 v2 = { transforms.x,                            transformsY - transforms.w };
+		glm::vec2 v1 = { transforms.x,				  transformsY };
+		glm::vec2 v2 = { transforms.x,				  transformsY - transforms.w };
 		glm::vec2 v3 = { transforms.x + transforms.z, transformsY - transforms.w };
 		glm::vec2 v4 = { transforms.x + transforms.z, transformsY };
 
@@ -514,6 +524,18 @@ namespace gl2d
 		texturePositions[texturePositionsCount++] = glm::vec2{ textureCoords.z, textureCoords.y }; //4
 
 		spriteTextures[spriteTexturesCount++] = texture;	
+	}
+
+	void Renderer2D::renderRectangle(const Rect transforms, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords)
+	{
+		gl2d::Color4f colors[4] = { Colors_White, Colors_White, Colors_White, Colors_White };
+		renderRectangle(transforms, colors, origin, rotation, texture, textureCoords);
+	}
+
+	void Renderer2D::renderRectangleAbsRotation(const Rect transforms, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords)
+	{
+		gl2d::Color4f colors[4] = { Colors_White, Colors_White, Colors_White, Colors_White };
+		renderRectangleAbsRotation(transforms, colors, origin, rotation, texture, textureCoords);
 	}
 
 	void Renderer2D::renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation)
@@ -764,45 +786,39 @@ namespace gl2d
 
 	}
 
-
-
-
 	void Renderer2D::create()
 	{
-		Renderer2D renderer = {};
-		renderer.white1pxSquareTexture.create1PxSquare();
+		white1pxSquareTexture.create1PxSquare();
 
-		renderer.spritePositionsCount = 0;
-		renderer.spriteColorsCount = 0;
-		renderer.texturePositionsCount = 0;
-		renderer.spriteTexturesCount = 0;
+		spritePositionsCount = 0;
+		spriteColorsCount = 0;
+		texturePositionsCount = 0;
+		spriteTexturesCount = 0;
 
-		renderer.windowW;
-		renderer.windowH;
+		windowW;
+		windowH;
 
-		renderer.currentShader = defaultShader;
-		renderer.currentCamera = defaultCamera;
+		currentShader = defaultShader;
+		currentCamera = defaultCamera;
 
-		glGenVertexArrays(1, &renderer.vao);
-		glBindVertexArray(renderer.vao);
+		glGenVertexArrays(1, &vao);
+		glBindVertexArray(vao);
 
-		glGenBuffers(Renderer2DBufferType::bufferSize, renderer.buffers);
+		glGenBuffers(Renderer2DBufferType::bufferSize, buffers);
 
-		glBindBuffer(GL_ARRAY_BUFFER, renderer.buffers[Renderer2DBufferType::quadPositions]);
+		glBindBuffer(GL_ARRAY_BUFFER, buffers[Renderer2DBufferType::quadPositions]);
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
-		glBindBuffer(GL_ARRAY_BUFFER, renderer.buffers[Renderer2DBufferType::quadColors]);
+		glBindBuffer(GL_ARRAY_BUFFER, buffers[Renderer2DBufferType::quadColors]);
 		glEnableVertexAttribArray(1);
 		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
-		glBindBuffer(GL_ARRAY_BUFFER, renderer.buffers[Renderer2DBufferType::texturePositions]);
+		glBindBuffer(GL_ARRAY_BUFFER, buffers[Renderer2DBufferType::texturePositions]);
 		glEnableVertexAttribArray(2);
 		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
 		glBindVertexArray(0);
-
-		*this =  renderer;
 	}
 
 	void Renderer2D::renderText(const glm::vec2 position, const char * text, const int text_length, const Font font, const Color4f color, const float size, const float spacing, const float line_space)
@@ -811,14 +827,14 @@ namespace gl2d
 		rectangle.x = position.x;
 
 		//This is the y position we render at because it advances when we encounter newlines
-		float line_position_y = position.y;
+		float linePositionY = position.y;
 
 		for (int i = 0; i < text_length; i++)
 		{
 			if (text[i] == '\n')
 			{
 				rectangle.x = position.x;
-				line_position_y += (font.max_height + line_space) * size;
+				linePositionY += (font.max_height + line_space) * size;
 			}
 			else if (text[i] == '\t')
 			{
@@ -838,7 +854,7 @@ namespace gl2d
 				rectangle.z *= size;
 				rectangle.w *= size;
 
-				rectangle.y = line_position_y - rectangle.w;
+				rectangle.y = linePositionY - rectangle.w;
 
 				glm::vec4 colorData[4] = { color, color, color, color };
 				renderRectangle(rectangle, colorData, glm::vec2{ 0, 0 }, 0, font.texture, glm::vec4{ quad.s0, quad.t0, quad.s1, quad.t1 });
@@ -870,6 +886,15 @@ namespace gl2d
 	}
 
 #pragma endregion
+
+	glm::ivec2 Texture::GetSize()
+	{
+		glm::ivec2 s;
+		glBindTexture(GL_TEXTURE_2D, id);
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &s.x);
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &s.y);
+		return s;
+	}
 
 	void Texture::createFromBuffer(const char * image_data, const int width, const int height)
 	{
@@ -912,19 +937,27 @@ namespace gl2d
 		int height = 0;
 		int channels = 0;
 
-		const unsigned char*   decodedImage = stbi_load_from_memory(image_file_data, image_file_size, &width, &height, &channels, 4);
-		Texture texture;
-		texture.createFromBuffer((const char*)decodedImage, width, height);
+		const unsigned char* decodedImage = stbi_load_from_memory(image_file_data, image_file_size, &width, &height, &channels, 4);
+		
+		createFromBuffer((const char*)decodedImage, width, height);
 
 		//Replace stbi allocators
 		free((void*)decodedImage);
-
-		*this = texture;
 	}
 
 	void Texture::loadFromFile(const char * fileName)
 	{
 		std::ifstream file(fileName, std::ios::binary);
+
+		if (!file.is_open())
+		{
+			char c[256] = {0};
+			strcat_s(c, "error openning: ");
+			strcat_s(c + strlen(c), 200, fileName);
+			errorFunc(c);
+			return;
+		}
+
 		int fileSize = 0;
 		file.seekg(0, std::ios::end);
 		fileSize = file.tellg();
