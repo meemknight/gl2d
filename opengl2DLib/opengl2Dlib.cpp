@@ -39,9 +39,9 @@ namespace gl2d
 
 	static errorFuncType *errorFunc = defaultErrorFunc;
 
-	void defaultErrorFunc(const char* msg) 
+	void defaultErrorFunc(const char* msg)
 	{
-		std::cout << msg << "\n";
+
 	}
 
 	errorFuncType *setErrorFuncCallback(errorFuncType *newFunc)
@@ -187,24 +187,31 @@ namespace gl2d
 
 	glm::vec2 scaleAroundPoint(glm::vec2 vec, glm::vec2 point, float scale)
 	{
-		//vec.x = vec.x - point.x;
-		//vec.y = vec.y - point.y;
 
-		vec.x = vec.x * scale;
-		vec.y = vec.y * scale;
+		vec = (vec - point) * scale + point;
 
-		if (scale > 1)
-		{
-			scale = scale - 1;
-		}
-		else
-		{
-			scale = scale - 1;
-		}
+		//vec.x = vec.x * scale;
+		//vec.y = vec.y * scale;
+		//
+		//glm::vec2 move = point - (point * scale);
+		//
+		//vec += move;
 
-		vec.x = vec.x + point.x * scale;
-		vec.y = vec.y + point.y * scale;
-
+		//vec.x = vec.x * scale;
+		//vec.y = vec.y * scale;
+		//
+		//if (scale > 1)
+		//{
+		//	scale = scale - 1;
+		//}
+		//else
+		//{
+		//	scale = scale - 1;
+		//}
+		//
+		//vec.x = vec.x + point.x * scale;
+		//vec.y = vec.y + point.y * scale;
+		//
 		return vec;
 	}
 
@@ -247,9 +254,9 @@ namespace gl2d
 	{
 
 		size.x = 2000,
-		size.y = 2000,
-		max_height = 0,
-		packedCharsBufferSize = sizeof(stbtt_packedchar) * ('~' - ' ');
+			size.y = 2000,
+			max_height = 0,
+			packedCharsBufferSize = sizeof(stbtt_packedchar) * ('~' - ' ');
 
 		//STB TrueType will give us a one channel buffer of the font that we then convert to RGBA for OpenGL
 		const size_t fontMonochromeBufferSize = size.x * size.y;
@@ -318,7 +325,7 @@ namespace gl2d
 		{
 			char c[256] = { 0 };
 			strcat_s(c, "error openning: ");
-			strcat_s(c+strlen(c), 200,file);
+			strcat_s(c + strlen(c), 200, file);
 			errorFunc(c);
 			return;
 		}
@@ -330,7 +337,7 @@ namespace gl2d
 		unsigned char * fileData = new unsigned char[fileSize];
 		fileFont.read((char*)fileData, fileSize);
 		fileFont.close();
-		
+
 		createFromTTF(fileData, fileSize);
 
 		delete[] fileData;
@@ -346,7 +353,7 @@ namespace gl2d
 		Camera c = {};
 		c.zoom = 1;
 		return c;
-	}	
+	}
 #pragma endregion
 
 	///////////////////// Renderer2D /////////////////////
@@ -354,6 +361,15 @@ namespace gl2d
 
 	void gl2d::Renderer2D::flush()
 	{
+		if (windowH == 0 || windowW == 0)
+		{
+			spritePositionsCount = 0;
+			spriteColorsCount = 0;
+			spriteTexturesCount = 0;
+			texturePositionsCount = 0;
+			return;
+		}
+
 		if (spriteTexturesCount == 0)
 		{
 			return;
@@ -482,9 +498,10 @@ namespace gl2d
 		//Apply camera zoom
 		//if(renderer->currentCamera.zoom != 1)
 		{
+
 			glm::vec2 cameraCenter;
-			cameraCenter.x = -currentCamera.position.x;
-			cameraCenter.y = currentCamera.position.y;
+			cameraCenter.x = windowW / 2.0f;
+			cameraCenter.y = -windowH / 2.0f;
 
 			v1 = scaleAroundPoint(v1, cameraCenter, currentCamera.zoom);
 			v2 = scaleAroundPoint(v2, cameraCenter, currentCamera.zoom);
@@ -523,7 +540,7 @@ namespace gl2d
 		texturePositions[texturePositionsCount++] = glm::vec2{ textureCoords.z, textureCoords.w }; //3
 		texturePositions[texturePositionsCount++] = glm::vec2{ textureCoords.z, textureCoords.y }; //4
 
-		spriteTextures[spriteTexturesCount++] = texture;	
+		spriteTextures[spriteTexturesCount++] = texture;
 	}
 
 	void Renderer2D::renderRectangle(const Rect transforms, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords)
@@ -821,8 +838,9 @@ namespace gl2d
 		glBindVertexArray(0);
 	}
 
-	void Renderer2D::renderText(const glm::vec2 position, const char * text, const int text_length, const Font font, const Color4f color, const float size, const float spacing, const float line_space)
+	void Renderer2D::renderText(const glm::vec2 position, const char * text, const Font font, const Color4f color, const float size, const float spacing, const float line_space)
 	{
+		const int text_length = strlen(text);
 		Rect rectangle;
 		rectangle.x = position.x;
 
@@ -908,8 +926,8 @@ namespace gl2d
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
 
@@ -938,7 +956,7 @@ namespace gl2d
 		int channels = 0;
 
 		const unsigned char* decodedImage = stbi_load_from_memory(image_file_data, image_file_size, &width, &height, &channels, 4);
-		
+
 		createFromBuffer((const char*)decodedImage, width, height);
 
 		//Replace stbi allocators
@@ -951,7 +969,7 @@ namespace gl2d
 
 		if (!file.is_open())
 		{
-			char c[256] = {0};
+			char c[256] = { 0 };
 			strcat_s(c, "error openning: ");
 			strcat_s(c + strlen(c), 200, fileName);
 			errorFunc(c);
@@ -1000,41 +1018,39 @@ namespace gl2d
 
 	void FrameBuffer::create(unsigned int w, unsigned int h)
 	{
-		FrameBuffer fb;
-		glGenFramebuffers(1, &fb.fbo);
-		glBindFramebuffer(GL_FRAMEBUFFER, fb.fbo);
+		glGenFramebuffers(1, &fbo);
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-		glGenTextures(1, &fb.texture);
-		glBindTexture(GL_TEXTURE_2D, fb.texture);
+		glGenTextures(1, &texture.id);
+		glBindTexture(GL_TEXTURE_2D, texture.id);
 
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fb.texture, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.id, 0);
 
 		//glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
-		glGenTextures(1, &fb.depthtTexture);
-		glBindTexture(GL_TEXTURE_2D, fb.depthtTexture);
+		glGenTextures(1, &depthtTexture);
+		glBindTexture(GL_TEXTURE_2D, depthtTexture);
 
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, w, h, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, fb.depthtTexture, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthtTexture, 0);
 
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-		*this = fb;
 	}
 
 	//todo vlod: will probasbly also clear the fbo
 	void FrameBuffer::resize(unsigned int w, unsigned int h)
 	{
-		glBindTexture(GL_TEXTURE_2D, texture);
+		glBindTexture(GL_TEXTURE_2D, texture.id);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
 		glBindTexture(GL_TEXTURE_2D, depthtTexture);
@@ -1047,7 +1063,7 @@ namespace gl2d
 		glDeleteFramebuffers(1, &fbo);
 		fbo = 0;
 
-		glDeleteTextures(1, &texture);
+		glDeleteTextures(1, &texture.id);
 		texture = 0;
 
 		glDeleteTextures(1, &depthtTexture);
