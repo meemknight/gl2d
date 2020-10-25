@@ -19,7 +19,6 @@ int main()
 	gl2d::Renderer2D renderer;
 	renderer.create();
 	
-
 	gl2d::Font f("roboto_black.ttf");
 	gl2d::Texture texture("test.jpg");
 
@@ -64,7 +63,7 @@ int main()
 		renderer.renderText({ 0,200 }, "text Vlad", f, Colors_Blue );
 		renderer.renderText({ 0,300 }, "text Mihai", f, Colors_Green);
 
-		renderer.renderRectangle({ 100,150, 100, 100 }, {0,0}, 0, texture);
+		renderer.renderRectangle({ 100,150, 100, 100 }, {1,0,0,0.5}, { 0,0 }, 0);
 
 		renderer.flush();
 
