@@ -4,15 +4,21 @@
 #include <iostream>
 #include <fstream>
 #include <Windows.h>
+#include <string>
 
 #include "opengl2Dlib.h"
 
+
 int main() 
 {
+#pragma region glfw
+
 	glfwInit();
 	GLFWwindow *wind = glfwCreateWindow(840, 640, "window", 0, 0);
 	glfwMakeContextCurrent(wind);
 	glewInit();
+
+#pragma endregion
 
 	gl2d::init();
 
@@ -22,16 +28,19 @@ int main()
 	gl2d::Font f("roboto_black.ttf");
 	gl2d::Texture texture("test.jpg");
 
-	std::cout << texture.GetSize().x;
+	//std::cout << texture.GetSize().x;
 
-	float speed = 40;
-
-	renderer.resetCameraAndShader();
+	float speed = 400;
 
 	long lastTime = GetTickCount();
 
+	std::string text = {};
+
 	while (!glfwWindowShouldClose(wind))
 	{
+
+#pragma region movement
+
 		long newTime = GetTickCount();
 		float deltaTime = (float)(newTime - lastTime) / 1000.f;
 		lastTime = GetTickCount();
@@ -44,15 +53,26 @@ int main()
 		{
 			renderer.currentCamera.position.y += speed * deltaTime;
 		}
+		if (GetAsyncKeyState('A'))
+		{
+			renderer.currentCamera.position.x -= speed * deltaTime;
+		}
+		if (GetAsyncKeyState('D'))
+		{
+			renderer.currentCamera.position.x += speed * deltaTime;
+		}
+#pragma endregion
+
 
 		int w = 0; int h = 0;
 		glfwGetWindowSize(wind, &w, &h);
 		renderer.updateWindowMetrics(w, h);
+
+
 		renderer.clearScreen();
 
-		glfwPollEvents();
-
-		gl2d::enableNecessaryGLFeatures();
+		//necessary only if you modify gl settings
+		//gl2d::enableNecessaryGLFeatures();
 
 		renderer.renderRectangle({ 100,350, 100, 100 }, { 0,0 }, 0, texture);
 
@@ -65,9 +85,49 @@ int main()
 
 		renderer.renderRectangle({ 100,150, 100, 100 }, {1,0,0,0.5}, { 0,0 }, 0);
 
+
+		renderer.renderRectangle({ 300,300,10,10 }, Colors_Orange);
+
+		glm::vec2 textSize = renderer.getTextSize(text.c_str(), f);
+		renderer.renderText({ 300,300 }, text.c_str(), f, Colors_Gray,
+			1.5, 4.0, 3, false);
+
+
+		for(int i=8;i<255;i++)
+		{
+			if(GetAsyncKeyState(i) == -32767 )
+			{
+				if(isalnum(i))
+				{
+					text += char(i);
+				}else if(i == VK_BACK)
+				{
+					if(text.length())
+					text = std::string(text.begin(), text.end() - 1);
+				}
+				else if (i == VK_SPACE)
+				{
+					text += ' ';
+				}else if (i == VK_RETURN)
+				{
+					text += '\n';
+				}
+
+			}
+		
+		}
+
+
+
 		renderer.flush();
 
+#pragma region glfw
+
 		glfwSwapBuffers(wind);
+		glfwPollEvents();
+
+#pragma endregion
+
 	}
 
 	return 0;

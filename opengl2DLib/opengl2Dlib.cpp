@@ -56,14 +56,14 @@ namespace gl2d
 
 #pragma endregion
 
-	static errorFuncType* errorFunc = defaultErrorFunc;
+	static errorFuncType *errorFunc = defaultErrorFunc;
 
 	void defaultErrorFunc(const char* msg)
 	{
 
 	}
 
-	errorFuncType* setErrorFuncCallback(errorFuncType* newFunc)
+	errorFuncType *setErrorFuncCallback(errorFuncType *newFunc)
 	{
 		auto a = errorFunc;
 		errorFunc = newFunc;
@@ -190,8 +190,12 @@ namespace gl2d
 		bool WGL_EXT_swap_control_ext;
 	}extensions = {};
 
+	bool hasInitialized = 0;
 	void init()
 	{
+		if (hasInitialized) { return; }
+		hasInitialized = true;
+
 		//int last = 0;
 		//glGetIntegerv(GL_NUM_EXTENSIONS, &last);
 		//for(int i=0; i<last; i++)
@@ -882,11 +886,7 @@ namespace gl2d
 		texturePositionsCount = 0;
 		spriteTexturesCount = 0;
 
-		windowW;
-		windowH;
-
-		currentShader = defaultShader;
-		currentCamera = defaultCamera;
+		this->resetCameraAndShader();
 
 		glGenVertexArrays(1, &vao);
 		glBindVertexArray(vao);
@@ -959,7 +959,6 @@ namespace gl2d
 		float linePositionY = position.y;
 
 		//This is the y position we render at because it advances when we encounter newlines
-
 		float maxPos = 0;
 		float maxPosY = 0;
 		float bonusY = 0;
