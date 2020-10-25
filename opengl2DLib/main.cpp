@@ -10,7 +10,7 @@
 int main() 
 {
 	glfwInit();
-	GLFWwindow *wind = glfwCreateWindow(620, 420, "window", 0, 0);
+	GLFWwindow *wind = glfwCreateWindow(840, 640, "window", 0, 0);
 	glfwMakeContextCurrent(wind);
 	glewInit();
 

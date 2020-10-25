@@ -1,5 +1,10 @@
 #include "opengl2Dlib.h"
+#include <GL/wglew.h>
 #include <fstream>
+#include <sstream>
+#include <algorithm>
+
+#undef max
 
 namespace gl2d
 {
@@ -35,16 +40,30 @@ namespace gl2d
 		"    color = v_color * texture(u_sampler, v_texture);\n"
 		"}\n";
 
+	static const char* maskFragmentShader =
+		"#version 300 es\n"
+		"precision mediump float;\n"
+		"out vec4 color;\n"
+		"in vec4 v_color;\n"
+		"in vec2 v_texture;\n"
+		"uniform sampler2D u_sampler;\n"
+		"uniform sampler2D u_mask;\n"
+		"void main()\n"
+		"{\n"
+		"    color = v_color * texture(u_sampler, v_texture)* texture(u_mask, v_texture);\n"
+		"}\n";
+
+
 #pragma endregion
 
-	static errorFuncType *errorFunc = defaultErrorFunc;
+	static errorFuncType* errorFunc = defaultErrorFunc;
 
 	void defaultErrorFunc(const char* msg)
 	{
 
 	}
 
-	errorFuncType *setErrorFuncCallback(errorFuncType *newFunc)
+	errorFuncType* setErrorFuncCallback(errorFuncType* newFunc)
 	{
 		auto a = errorFunc;
 		errorFunc = newFunc;
@@ -66,10 +85,13 @@ namespace gl2d
 		stbtt_aligned_quad fontGetGlyphQuad(const Font font, const char c)
 		{
 			stbtt_aligned_quad quad = { 0 };
-			float xoffset = 0;
-			float yoffset = 0;
 
-			stbtt_GetPackedQuad(font.packedCharsBuffer, font.size.x, font.size.y, c - ' ', &xoffset, &yoffset, &quad, 1);
+			float x = 0;
+			float y = 0;
+
+			stbtt_GetPackedQuad(font.packedCharsBuffer,
+				font.size.x, font.size.y, c - ' ', &x, &y, &quad, 1);
+
 
 			return quad;
 		}
@@ -163,10 +185,46 @@ namespace gl2d
 		}
 	}
 
+	struct
+	{
+		bool WGL_EXT_swap_control_ext;
+	}extensions = {};
+
 	void init()
 	{
+		//int last = 0;
+		//glGetIntegerv(GL_NUM_EXTENSIONS, &last);
+		//for(int i=0; i<last; i++)
+		//{
+		//	const char *c = (const char*)glGetStringi(GL_EXTENSIONS, i);
+		//	if(strcmp(c, "WGL_EXT_swap_control") == 0)
+		//	{
+		//		extensions.WGL_EXT_swap_control_ext = true;
+		//		break;
+		//	}
+		//}
+		//todo check ?
+
+		if (wglGetProcAddress("wglSwapIntervalEXT") != nullptr)
+		{
+			extensions.WGL_EXT_swap_control_ext = true;
+		}
+
 		defaultShader = internal::createShaderProgram(defaultVertexShader, defaultFragmentShader);
 		enableNecessaryGLFeatures();
+	}
+
+	bool setVsync(bool b)
+	{
+		if (extensions.WGL_EXT_swap_control_ext)
+		{
+			wglSwapIntervalEXT(b);
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 
 	glm::vec2 rotateAroundPoint(glm::vec2 vec, glm::vec2 point, const float degrees)
@@ -187,38 +245,15 @@ namespace gl2d
 
 	glm::vec2 scaleAroundPoint(glm::vec2 vec, glm::vec2 point, float scale)
 	{
-
 		vec = (vec - point) * scale + point;
 
-		//vec.x = vec.x * scale;
-		//vec.y = vec.y * scale;
-		//
-		//glm::vec2 move = point - (point * scale);
-		//
-		//vec += move;
-
-		//vec.x = vec.x * scale;
-		//vec.y = vec.y * scale;
-		//
-		//if (scale > 1)
-		//{
-		//	scale = scale - 1;
-		//}
-		//else
-		//{
-		//	scale = scale - 1;
-		//}
-		//
-		//vec.x = vec.x + point.x * scale;
-		//vec.y = vec.y + point.y * scale;
-		//
 		return vec;
 	}
 
 	///////////////////// Texture /////////////////////
 #pragma region Texture
 
-	void convertFromRetardedCoordonates(int tSizeX, int tSizeY, int x, int y, int sizeX, int sizeY, int s1, int s2, int s3, int s4, Texture_Coords *outer, Texture_Coords *inner)
+	void convertFromRetardedCoordonates(int tSizeX, int tSizeY, int x, int y, int sizeX, int sizeY, int s1, int s2, int s3, int s4, Texture_Coords* outer, Texture_Coords* inner)
 	{
 		float newX = (float)tSizeX / (float)x;
 		float newY = (float)tSizeY / (float)y;
@@ -250,7 +285,7 @@ namespace gl2d
 	///////////////////// Font /////////////////////
 #pragma region Font
 
-	void Font::createFromTTF(const unsigned char * ttf_data, const size_t ttf_data_size)
+	void Font::createFromTTF(const unsigned char* ttf_data, const size_t ttf_data_size)
 	{
 
 		size.x = 2000,
@@ -317,7 +352,7 @@ namespace gl2d
 		}
 	}
 
-	void Font::createFromFile(const char * file)
+	void Font::createFromFile(const char* file)
 	{
 		std::ifstream fileFont(file, std::ios::binary);
 
@@ -332,9 +367,9 @@ namespace gl2d
 
 		int fileSize = 0;
 		fileFont.seekg(0, std::ios::end);
-		fileSize = fileFont.tellg();
+		fileSize = (int)fileFont.tellg();
 		fileFont.seekg(0, std::ios::beg);
-		unsigned char * fileData = new unsigned char[fileSize];
+		unsigned char* fileData = new unsigned char[fileSize];
 		fileFont.read((char*)fileData, fileSize);
 		fileFont.close();
 
@@ -438,6 +473,8 @@ namespace gl2d
 	{
 		glEnable(GL_BLEND);
 
+		glDisable(GL_DEPTH_TEST);
+
 		glBlendEquation(GL_FUNC_ADD);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
@@ -509,14 +546,14 @@ namespace gl2d
 			v4 = scaleAroundPoint(v4, cameraCenter, currentCamera.zoom);
 		}
 
-		v1.x = internal::positionToScreenCoordsX(v1.x, windowW);
-		v2.x = internal::positionToScreenCoordsX(v2.x, windowW);
-		v3.x = internal::positionToScreenCoordsX(v3.x, windowW);
-		v4.x = internal::positionToScreenCoordsX(v4.x, windowW);
-		v1.y = internal::positionToScreenCoordsY(v1.y, windowH);
-		v2.y = internal::positionToScreenCoordsY(v2.y, windowH);
-		v3.y = internal::positionToScreenCoordsY(v3.y, windowH);
-		v4.y = internal::positionToScreenCoordsY(v4.y, windowH);
+		v1.x = internal::positionToScreenCoordsX(v1.x, (float)windowW);
+		v2.x = internal::positionToScreenCoordsX(v2.x, (float)windowW);
+		v3.x = internal::positionToScreenCoordsX(v3.x, (float)windowW);
+		v4.x = internal::positionToScreenCoordsX(v4.x, (float)windowW);
+		v1.y = internal::positionToScreenCoordsY(v1.y, (float)windowH);
+		v2.y = internal::positionToScreenCoordsY(v2.y, (float)windowH);
+		v3.y = internal::positionToScreenCoordsY(v3.y, (float)windowH);
+		v4.y = internal::positionToScreenCoordsY(v4.y, (float)windowH);
 
 		spritePositions[spritePositionsCount++] = glm::vec2{ v1.x, v1.y };
 		spritePositions[spritePositionsCount++] = glm::vec2{ v2.x, v2.y };
@@ -715,6 +752,37 @@ namespace gl2d
 		upperTexPos.w = inner_texture_coords.y;
 		renderRectangle(topPos, colorData, Position2D{ 0, 0 }, 0, texture, upperTexPos);
 
+		//Rect topPos = position;
+		//topPos.x += leftBorder;
+		//topPos.w = topBorder;
+		//topPos.z = topBorder;
+		//float end = rightBorder;
+		//float size = topBorder;
+		//
+		////todo replace with 1
+		//while(1)
+		//{
+		//	if(topPos.x + size <= end)
+		//	{
+		//
+		//		//draw
+		//		renderRectangle(topPos, colorData, Position2D{ 0, 0 }, 0, texture, upperTexPos);
+		//
+		//		topPos += size;
+		//	}else
+		//	{
+		//		float newW = end - topPos.x;
+		//		if(newW>0)
+		//		{
+		//			topPos.z = newW;
+		//			renderRectangle(topPos, colorData, Position2D{ 0, 0 }, 0, texture, upperTexPos);
+		//		}
+		//		break;
+		//	}
+		//
+		//}
+
+
 		//bottom
 		Rect bottom = position;
 		bottom.x += leftBorder;
@@ -763,6 +831,8 @@ namespace gl2d
 		topleftTexPos.z = inner_texture_coords.x;
 		topleftTexPos.w = inner_texture_coords.y;
 		renderRectangle(topleft, colorData, Position2D{ 0, 0 }, 0, texture, topleftTexPos);
+		//todo repair
+
 
 		//topright
 		Rect topright = position;
@@ -838,14 +908,194 @@ namespace gl2d
 		glBindVertexArray(0);
 	}
 
-	void Renderer2D::renderText(const glm::vec2 position, const char * text, const Font font, const Color4f color, const float size, const float spacing, const float line_space)
+	glm::vec4 Renderer2D::toScreen(const glm::vec4& transform)
 	{
-		const int text_length = strlen(text);
+		//We need to flip texture_transforms.y
+		const float transformsY = transform.y * -1;
+
+		glm::vec2 v1 = { transform.x,				  transformsY };
+		glm::vec2 v2 = { transform.x,				  transformsY - transform.w };
+		glm::vec2 v3 = { transform.x + transform.z, transformsY - transform.w };
+		glm::vec2 v4 = { transform.x + transform.z, transformsY };
+
+		//Apply camera transformations
+		v1.x -= currentCamera.position.x;
+		v1.y += currentCamera.position.y;
+		v2.x -= currentCamera.position.x;
+		v2.y += currentCamera.position.y;
+		v3.x -= currentCamera.position.x;
+		v3.y += currentCamera.position.y;
+		v4.x -= currentCamera.position.x;
+		v4.y += currentCamera.position.y;
+
+		//Apply camera zoom
+		//if(renderer->currentCamera.zoom != 1)
+		{
+
+			glm::vec2 cameraCenter;
+			cameraCenter.x = windowW / 2.0f;
+			cameraCenter.y = -windowH / 2.0f;
+
+			v1 = scaleAroundPoint(v1, cameraCenter, currentCamera.zoom);
+			v3 = scaleAroundPoint(v3, cameraCenter, currentCamera.zoom);
+		}
+
+		v1.x = internal::positionToScreenCoordsX(v1.x, (float)windowW);
+		v3.x = internal::positionToScreenCoordsX(v3.x, (float)windowW);
+		v1.y = internal::positionToScreenCoordsY(v1.y, (float)windowH);
+		v3.y = internal::positionToScreenCoordsY(v3.y, (float)windowH);
+
+		return glm::vec4(v1.x, v1.y, v3.x, v3.y);
+	}
+
+	glm::vec2 Renderer2D::getTextSize(const char* text, const Font font,
+		const float size, const float spacing, const float line_space)
+	{
+		glm::vec2 position = {};
+
+		const int text_length = (int)strlen(text);
 		Rect rectangle;
+		rectangle.x = position.x;
+		float linePositionY = position.y;
+
+		//This is the y position we render at because it advances when we encounter newlines
+
+		float maxPos = 0;
+		float maxPosY = 0;
+		float bonusY = 0;
+
+		for (int i = 0; i < text_length; i++)
+		{
+			if (text[i] == '\n')
+			{
+				rectangle.x = position.x;
+				linePositionY += (font.max_height + line_space) * size;
+				bonusY += (font.max_height + line_space) * size;
+				maxPosY = 0;
+			}
+			else if (text[i] == '\t')
+			{
+				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
+				(font, '_');
+				auto x = quad.x1 - quad.x0;
+
+				rectangle.x += x * size * 3 + spacing * size;
+			}
+			else if (text[i] == ' ')
+			{
+				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
+				(font, '_');
+				auto x = quad.x1 - quad.x0;
+
+				rectangle.x += x * size + spacing * size;
+			}
+			else if (text[i] >= ' ' && text[i] <= '~')
+			{
+				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
+				(font, text[i]);
+
+				rectangle.z = quad.x1 - quad.x0;
+				rectangle.w = quad.y1 - quad.y0;
+
+				rectangle.z *= size;
+				rectangle.w *= size;
+
+				rectangle.y = linePositionY + quad.y0 * size;
+
+				rectangle.x += rectangle.z + spacing * size;
+
+				maxPosY = std::max(maxPosY, rectangle.y);
+				maxPos = std::max(maxPos, rectangle.x);
+			}
+		}
+
+		maxPos = std::max(maxPos, rectangle.x);
+		maxPosY = std::max(maxPosY, rectangle.y);
+
+		float paddX = maxPos;
+
+		float paddY = maxPosY;
+
+		paddY += font.max_height * size + bonusY;
+
+		return glm::vec2{ paddX, paddY };
+
+	}
+
+	void Renderer2D::renderText(glm::vec2 position, const char* text, const Font font,
+		const Color4f color, const float size, const float spacing, const float line_space, bool showInCenter,
+		const Color4f ShadowColor
+		, const Color4f LightColor
+	)
+	{
+		const int text_length = (int)strlen(text);
+		Rect rectangle;
+		rectangle.x = position.x;
+		float linePositionY = position.y;
+
+		if (showInCenter)
+		{
+			//This is the y position we render at because it advances when we encounter newlines
+
+			float maxPos = 0;
+			float maxPosY = 0;
+
+			for (int i = 0; i < text_length; i++)
+			{
+				if (text[i] == '\n')
+				{
+					rectangle.x = position.x;
+					linePositionY += (font.max_height + line_space) * size;
+				}
+				else if (text[i] == '\t')
+				{
+					const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
+					(font, '_');
+					auto x = quad.x1 - quad.x0;
+
+					rectangle.x += x * size * 3 + spacing * size;
+				}
+				else if (text[i] == ' ')
+				{
+					const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
+					(font, '_');
+					auto x = quad.x1 - quad.x0;
+
+					rectangle.x += x * size + spacing * size;
+				}
+				else if (text[i] >= ' ' && text[i] <= '~')
+				{
+					const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
+					(font, text[i]);
+
+					rectangle.z = quad.x1 - quad.x0;
+					rectangle.w = quad.y1 - quad.y0;
+
+					rectangle.z *= size;
+					rectangle.w *= size;
+
+					rectangle.y = linePositionY + quad.y0 * size;
+
+
+					rectangle.x += rectangle.z + spacing * size;
+					maxPos = std::max(maxPos, rectangle.x);
+					maxPosY = std::max(maxPosY, rectangle.y);
+				}
+			}
+
+			float padd = maxPos - position.x;
+			padd /= 2;
+			position.x -= padd;
+
+			float paddY = maxPosY - position.y;
+			position.y -= paddY;
+		}
+
+		rectangle = {};
 		rectangle.x = position.x;
 
 		//This is the y position we render at because it advances when we encounter newlines
-		float linePositionY = position.y;
+		linePositionY = position.y;
 
 		for (int i = 0; i < text_length; i++)
 		{
@@ -856,15 +1106,24 @@ namespace gl2d
 			}
 			else if (text[i] == '\t')
 			{
-				rectangle.x += spacing * 3 * size * 4;
+				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
+				(font, '_');
+				auto x = quad.x1 - quad.x0;
+
+				rectangle.x += x * size * 3 + spacing * size;
 			}
 			else if (text[i] == ' ')
 			{
-				rectangle.x += spacing * 3 * size;
+				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
+				(font, '_');
+				auto x = quad.x1 - quad.x0;
+				rectangle.x += x * size + spacing * size;
 			}
 			else if (text[i] >= ' ' && text[i] <= '~')
 			{
-				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad(font, text[i]);
+
+				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
+				(font, text[i]);
 
 				rectangle.z = quad.x1 - quad.x0;
 				rectangle.w = quad.y1 - quad.y0;
@@ -872,10 +1131,34 @@ namespace gl2d
 				rectangle.z *= size;
 				rectangle.w *= size;
 
-				rectangle.y = linePositionY - rectangle.w;
+				//rectangle.y = linePositionY - rectangle.w;
+				rectangle.y = linePositionY + quad.y0 * size;
 
 				glm::vec4 colorData[4] = { color, color, color, color };
+
+				if (ShadowColor.w)
+				{
+					glm::vec2 pos = { -5, 3 };
+					pos *= size;
+					renderRectangle({ rectangle.x + pos.x, rectangle.y + pos.y,  rectangle.z, rectangle.w },
+						ShadowColor, glm::vec2{ 0, 0 }, 0, font.texture,
+						glm::vec4{ quad.s0, quad.t0, quad.s1, quad.t1 });
+
+				}
+
 				renderRectangle(rectangle, colorData, glm::vec2{ 0, 0 }, 0, font.texture, glm::vec4{ quad.s0, quad.t0, quad.s1, quad.t1 });
+
+				if (LightColor.w)
+				{
+					glm::vec2 pos = { -2, 1 };
+					pos *= size;
+					renderRectangle({ rectangle.x + pos.x, rectangle.y + pos.y,  rectangle.z, rectangle.w },
+						LightColor, glm::vec2{ 0, 0 }, 0, font.texture,
+						glm::vec4{ quad.s0, quad.t0, quad.s1, quad.t1 });
+
+				}
+
+
 				rectangle.x += rectangle.z + spacing * size;
 			}
 		}
@@ -914,7 +1197,7 @@ namespace gl2d
 		return s;
 	}
 
-	void Texture::createFromBuffer(const char * image_data, const int width, const int height)
+	void Texture::createFromBuffer(const char* image_data, const int width, const int height)
 	{
 		GLuint id = 0;
 
@@ -934,20 +1217,28 @@ namespace gl2d
 		this->id = id;
 	}
 
-	void Texture::create1PxSquare()
+	void Texture::create1PxSquare(const char* b)
 	{
-		const char buff[] =
+		if (b == nullptr)
 		{
-			0xff,
-			0xff,
-			0xff,
-			0xff
-		};
+			const unsigned char buff[] =
+			{
+				0xff,
+				0xff,
+				0xff,
+				0xff
+			};
 
-		createFromBuffer(buff, 1, 1);
+			createFromBuffer((char*)buff, 1, 1);
+		}
+		else
+		{
+			createFromBuffer(b, 1, 1);
+		}
+
 	}
 
-	void Texture::createFromFileData(const unsigned char * image_file_data, const size_t image_file_size)
+	void Texture::createFromFileData(const unsigned char* image_file_data, const size_t image_file_size)
 	{
 		stbi_set_flip_vertically_on_load(true);
 
@@ -955,7 +1246,7 @@ namespace gl2d
 		int height = 0;
 		int channels = 0;
 
-		const unsigned char* decodedImage = stbi_load_from_memory(image_file_data, image_file_size, &width, &height, &channels, 4);
+		const unsigned char* decodedImage = stbi_load_from_memory(image_file_data, (int)image_file_size, &width, &height, &channels, 4);
 
 		createFromBuffer((const char*)decodedImage, width, height);
 
@@ -963,7 +1254,197 @@ namespace gl2d
 		free((void*)decodedImage);
 	}
 
-	void Texture::loadFromFile(const char * fileName)
+	void Texture::createFromFileDataWithPixelPadding(const unsigned char* image_file_data, const size_t image_file_size, int blockSize)
+	{
+		stbi_set_flip_vertically_on_load(true);
+
+		int width = 0;
+		int height = 0;
+		int channels = 0;
+
+		const unsigned char* decodedImage = stbi_load_from_memory(image_file_data, (int)image_file_size, &width, &height, &channels, 4);
+
+		/*
+		int newW = width + (width / blockSize);
+		int newH = height + (height / blockSize);
+
+		unsigned char *newData = new unsigned char[newW * newH*4];
+
+		int newDataCursor=0;
+		int dataCursor=0;
+
+		for (int y = 0; y < newH; y++)
+		{
+
+			if(y%(blockSize+1) == blockSize)
+			{
+				for (int x = 0; x < newW; x++)
+				{
+					newData[newDataCursor++] = 0;
+					newData[newDataCursor++] = 0;
+					newData[newDataCursor++] = 0;
+					newData[newDataCursor++] = 0;
+				}
+			}else
+			{
+				for (int x = 0; x < newW; x++)
+				{
+					if(x%(blockSize+1) == blockSize)
+					{
+						newData[newDataCursor++] = 0;
+						newData[newDataCursor++] = 0;
+						newData[newDataCursor++] = 0;
+						newData[newDataCursor++] = 0;
+					}else
+					{
+						newData[newDataCursor++] = decodedImage[dataCursor++];
+						newData[newDataCursor++] = decodedImage[dataCursor++];
+						newData[newDataCursor++] = decodedImage[dataCursor++];
+						newData[newDataCursor++] = decodedImage[dataCursor++];
+					}
+
+				}
+			}
+
+		}
+		*/
+
+		int newW = width + ((width * 2) / blockSize);
+		int newH = height + ((height * 2) / blockSize);
+
+		auto getOld = [decodedImage, width](int x, int y, int c)->const unsigned char
+		{
+			return decodedImage[4 * (x + (y * width)) + c];
+		};
+
+
+		unsigned char* newData = new unsigned char[newW * newH * 4];
+		ZeroMemory(newData, newW * newH * 4);
+
+		auto getNew = [newData, newW](int x, int y, int c)
+		{
+			return &newData[4 * (x + (y * newW)) + c];
+		};
+
+		int newDataCursor = 0;
+		int dataCursor = 0;
+
+		//first copy data
+		for (int y = 0; y < newH; y++)
+		{
+			int yNo = 0;
+			if ((y == 0 || y == newH - 1
+				|| ((y) % (blockSize + 2)) == 0 ||
+				((y + 1) % (blockSize + 2)) == 0
+				))
+			{
+				yNo = 1;
+			}
+
+			for (int x = 0; x < newW; x++)
+			{
+				if (
+					yNo ||
+
+					((
+						x == 0 || x == newW - 1
+						|| (x % (blockSize + 2)) == 0 ||
+						((x + 1) % (blockSize + 2)) == 0
+						)
+						)
+
+					)
+				{
+					newData[newDataCursor++] = 0;
+					newData[newDataCursor++] = 0;
+					newData[newDataCursor++] = 0;
+					newData[newDataCursor++] = 0;
+				}
+				else
+				{
+					newData[newDataCursor++] = decodedImage[dataCursor++];
+					newData[newDataCursor++] = decodedImage[dataCursor++];
+					newData[newDataCursor++] = decodedImage[dataCursor++];
+					newData[newDataCursor++] = decodedImage[dataCursor++];
+				}
+
+			}
+
+		}
+
+		//then add margins
+
+
+		for (int x = 1; x < newW - 1; x++)
+		{
+			//copy on left
+			if (x == 1 ||
+				(x % (blockSize + 2)) == 1
+				)
+			{
+				for (int y = 0; y < newH; y++)
+				{
+					*getNew(x - 1, y, 0) = *getNew(x, y, 0);
+					*getNew(x - 1, y, 1) = *getNew(x, y, 1);
+					*getNew(x - 1, y, 2) = *getNew(x, y, 2);
+					*getNew(x - 1, y, 3) = *getNew(x, y, 3);
+				}
+
+			}
+			else //copy on rigght
+				if (x == newW - 2 ||
+					(x % (blockSize + 2)) == blockSize
+					)
+				{
+					for (int y = 0; y < newH; y++)
+					{
+						*getNew(x + 1, y, 0) = *getNew(x, y, 0);
+						*getNew(x + 1, y, 1) = *getNew(x, y, 1);
+						*getNew(x + 1, y, 2) = *getNew(x, y, 2);
+						*getNew(x + 1, y, 3) = *getNew(x, y, 3);
+					}
+				}
+		}
+
+		for (int y = 1; y < newH - 1; y++)
+		{
+			if (y == 1 ||
+				(y % (blockSize + 2)) == 1
+				)
+			{
+				for (int x = 0; x < newW; x++)
+				{
+					*getNew(x, y - 1, 0) = *getNew(x, y, 0);
+					*getNew(x, y - 1, 1) = *getNew(x, y, 1);
+					*getNew(x, y - 1, 2) = *getNew(x, y, 2);
+					*getNew(x, y - 1, 3) = *getNew(x, y, 3);
+				}
+			}
+			else
+				if (y == newH - 2 ||
+					(y % (blockSize + 2)) == blockSize
+					)
+				{
+					for (int x = 0; x < newW; x++)
+					{
+						*getNew(x, y + 1, 0) = *getNew(x, y, 0);
+						*getNew(x, y + 1, 1) = *getNew(x, y, 1);
+						*getNew(x, y + 1, 2) = *getNew(x, y, 2);
+						*getNew(x, y + 1, 3) = *getNew(x, y, 3);
+					}
+				}
+
+		}
+
+
+		createFromBuffer((const char*)newData, newW, newH);
+
+		//Replace stbi allocators
+		free((void*)decodedImage);
+		delete[] newData;
+	}
+
+	void Texture::loadFromFile(const char* fileName)
 	{
 		std::ifstream file(fileName, std::ios::binary);
 
@@ -978,13 +1459,40 @@ namespace gl2d
 
 		int fileSize = 0;
 		file.seekg(0, std::ios::end);
-		fileSize = file.tellg();
+		fileSize = (int)file.tellg();
 		file.seekg(0, std::ios::beg);
-		unsigned char * fileData = new unsigned char[fileSize];
+		unsigned char* fileData = new unsigned char[fileSize];
 		file.read((char*)fileData, fileSize);
 		file.close();
 
 		createFromFileData(fileData, fileSize);
+
+		delete[] fileData;
+
+	}
+
+	void Texture::loadFromFileWithPixelPadding(const char* fileName, int blockSize)
+	{
+		std::ifstream file(fileName, std::ios::binary);
+
+		if (!file.is_open())
+		{
+			char c[256] = { 0 };
+			strcat_s(c, "error openning: ");
+			strcat_s(c + strlen(c), 200, fileName);
+			errorFunc(c);
+			return;
+		}
+
+		int fileSize = 0;
+		file.seekg(0, std::ios::end);
+		fileSize = (int)file.tellg();
+		file.seekg(0, std::ios::beg);
+		unsigned char* fileData = new unsigned char[fileSize];
+		file.read((char*)fileData, fileSize);
+		file.close();
+
+		createFromFileDataWithPixelPadding(fileData, fileSize, blockSize);
 
 		delete[] fileData;
 
@@ -1016,6 +1524,39 @@ namespace gl2d
 		return m; //todo could have problems
 	}
 
+	void Camera::follow(glm::vec2 pos, float speed, float max, float w, float h)
+	{
+		pos.x -= w / 2.F;
+		pos.y -= h / 2.f;
+
+		glm::vec2 delta = pos - position;
+		float len = glm::length(delta);
+
+		delta = glm::normalize(delta);
+
+		if (len < 4.f)
+		{
+			speed /= 4.f;
+		}
+		else if (len < 8.f)
+		{
+			speed /= 2.f;
+		}
+
+		if (len > 2.f)
+			if (len > max)
+			{
+				len = max;
+				position = pos - (max * delta);
+				position += delta * speed;
+			}
+			else
+			{
+				position += delta * speed;
+			}
+
+	}
+
 	void FrameBuffer::create(unsigned int w, unsigned int h)
 	{
 		glGenFramebuffers(1, &fbo);
@@ -1032,15 +1573,15 @@ namespace gl2d
 
 		//glDrawBuffer(GL_COLOR_ATTACHMENT0);
 
-		glGenTextures(1, &depthtTexture);
-		glBindTexture(GL_TEXTURE_2D, depthtTexture);
+		//glGenTextures(1, &depthtTexture);
+		//glBindTexture(GL_TEXTURE_2D, depthtTexture);
 
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, w, h, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+		//glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, w, h, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthtTexture, 0);
+		//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthtTexture, 0);
 
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -1053,8 +1594,8 @@ namespace gl2d
 		glBindTexture(GL_TEXTURE_2D, texture.id);
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
-		glBindTexture(GL_TEXTURE_2D, depthtTexture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		//glBindTexture(GL_TEXTURE_2D, depthtTexture);
+		//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
 	}
 
@@ -1066,8 +1607,8 @@ namespace gl2d
 		glDeleteTextures(1, &texture.id);
 		texture = 0;
 
-		glDeleteTextures(1, &depthtTexture);
-		depthtTexture = 0;
+		//glDeleteTextures(1, &depthtTexture);
+		//depthtTexture = 0;
 	}
 
 	void FrameBuffer::clear()
@@ -1075,6 +1616,43 @@ namespace gl2d
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
+
+	glm::vec4 computeTextureAtlas(int xCount, int yCount, int x, int y, bool flip)
+	{
+		float xSize = 1.f / xCount;
+		float ySize = 1.f / yCount;
+
+		if (flip)
+		{
+			return { (x + 1) * xSize, 1 - (y * ySize), (x)*xSize, 1.f - ((y + 1) * ySize) };
+		}
+		else
+		{
+			return { x * xSize, 1 - (y * ySize), (x + 1) * xSize, 1.f - ((y + 1) * ySize) };
+		}
+
+	}
+
+	glm::vec4 computeTextureAtlasWithPadding(int mapXsize, int mapYsize,
+		int xCount, int yCount, int x, int y, bool flip)
+	{
+		float xSize = 1.f / xCount;
+		float ySize = 1.f / yCount;
+
+		float Xpadding = 1.f / mapXsize;
+		float Ypadding = 1.f / mapYsize;
+
+		//todo
+		if (flip)
+		{
+			return { (x + 1) * xSize - Xpadding, 1 - (y * ySize) - Ypadding, (x)*xSize + Xpadding, 1.f - ((y + 1) * ySize) + Ypadding };
+		}
+		else
+		{
+			return { x * xSize + Xpadding, 1 - (y * ySize) - Ypadding, (x + 1) * xSize - Xpadding, 1.f - ((y + 1) * ySize) + Ypadding };
+		}
 	}
 
 }
