@@ -1,3 +1,28 @@
+//////////////////////////////////////////////////
+//opengl2Dlib.h				1.0
+//Copyright(c) 2020 Luta Vlad
+//https://github.com/meemknight/gl2d
+//
+//
+//	dependences: glew, glm, stb_image, stb_trueType
+//
+//
+//	features: 
+//	
+//	draw shapes with rotation color \
+//		texture transparency
+//	draw text with font and shadows
+//	camera
+//	shaders
+//	setVsync
+//	texture atlases and loading textures with \
+//		padding to fix visual bugs when using \
+//		pixel art sprite atlases
+//	draw to screen of frame buffer that	can \
+//		be used as a texture
+//
+//////////////////////////////////////////////////
+
 #pragma once
 #include <GL/glew.h>
 #include <iostream>

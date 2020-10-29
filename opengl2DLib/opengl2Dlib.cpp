@@ -1,3 +1,8 @@
+//////////////////////////////////////////////////
+//opengl2Dlib.cpp				1.0
+//Copyright(c) 2020 Luta Vlad
+//https://github.com/meemknight/gl2d
+//////////////////////////////////////////////////
 #include "opengl2Dlib.h"
 #include <GL/wglew.h>
 #include <fstream>
