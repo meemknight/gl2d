@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-//opengl2Dlib.h				1.0
+//opengl2Dlib.h				1.1
 //Copyright(c) 2020 Luta Vlad
 //https://github.com/meemknight/gl2d
 //
@@ -21,12 +21,16 @@
 //	draw to screen of frame buffer that	can \
 //		be used as a texture
 //
+//	a particle system that can use a custom \
+//	shader and apply a pixelate effect
+//
+//
 //////////////////////////////////////////////////
 
 #pragma once
 #include <GL/glew.h>
-#include <iostream>
 #include <glm/glm.hpp>
+#include <random>
 #include "stb_image.h"
 #include "stb_truetype.h"
 
@@ -312,6 +316,9 @@ namespace gl2d
 
 #pragma endregion
 
+	///////////////////// TextureAtlas /////////////////////
+#pragma region TextureAtlas
+
 	glm::vec4 computeTextureAtlas(int xCount, int yCount, int x, int y, bool flip = 0);
 
 	glm::vec4 computeTextureAtlasWithPadding(int mapXsize, int mapYsize, int xCount, int yCount, int x, int y, bool flip = 0);
@@ -348,6 +355,120 @@ namespace gl2d
 		}
 	};
 	// Get default internal texture (white texture)
+#pragma endregion
+
+	///////////////////// ParticleSysyem /////////////////////
+#pragma region ParticleSysyem
+
+	struct ParticleApearence
+	{
+		glm::vec2 size;
+		glm::vec4 color1;
+		glm::vec4 color2;
+	};
+
+	enum TRANZITION_TYPES
+	{
+		none = 0,
+		linear,
+		curbe,
+		abruptCurbe,
+		wave,
+		wave2,
+	};
+
+
+	struct ParticleSettings
+	{
+		ParticleSettings* deathRattle = nullptr;
+		ParticleSettings* subemitParticle = nullptr;
+
+		int onCreateCount;
+
+		glm::vec2 subemitParticleTime;
+
+		glm::vec2 positionX;
+		glm::vec2 positionY;
+
+		glm::vec2 particleLifeTime; // move
+		glm::vec2 directionX;
+		glm::vec2 directionY;
+		glm::vec2 dragX;
+		glm::vec2 dragY;
+
+		glm::vec2 rotation;
+		glm::vec2 rotationSpeed;
+		glm::vec2 rotationDrag;
+
+		ParticleApearence createApearence;
+		ParticleApearence createEndApearence;
+
+		gl2d::Texture* texturePtr = 0;
+
+		int tranzitionType;
+	};
+
+
+	struct ParticleSystem
+	{
+		void initParticleSystem(int size);
+		void cleanup();
+
+		void emitParticleWave(ParticleSettings* ps, glm::vec2 pos);
+
+
+		void applyMovement(float deltaTime);
+
+		void draw(Renderer2D& r);
+
+		bool postProcessing = true;
+		float pixelateFactor = 2;
+
+	private:
+
+		int size = 0;
+
+		float* posX = 0;
+		float* posY = 0;
+
+		float* directionX = 0;
+		float* directionY = 0;
+
+		float* rotation = 0;
+
+		float* sizeXY = 0;
+
+		float* dragX = 0;
+		float* dragY = 0;
+
+		float* duration = 0;
+		float* durationTotal = 0;
+
+		glm::vec4* color = 0;
+
+		float* rotationSpeed = 0;
+		float* rotationDrag = 0;
+
+		float* emitTime = 0;
+
+		char* tranzitionType = 0;
+		ParticleSettings** deathRattle = 0;
+		ParticleSettings** thisParticleSettings = 0;
+		ParticleSettings** emitParticle = 0;
+
+		gl2d::Texture** textures = 0;
+
+		std::mt19937 random{ std::random_device{}() };
+
+		gl2d::FrameBuffer fb;
+
+		float rand(glm::vec2 v);
+	};
+
+
+#pragma endregion
+
+
 
 
 };
