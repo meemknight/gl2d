@@ -8,12 +8,15 @@
 
 #include "opengl2Dlib.h"
 
-
 int main() 
 {
 #pragma region glfw
 
 	glfwInit();
+	glfwWindowHint(GLFW_SAMPLES, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+
 	GLFWwindow *wind = glfwCreateWindow(840, 640, "window", 0, 0);
 	glfwMakeContextCurrent(wind);
 	glewInit();

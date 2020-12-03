@@ -3,12 +3,23 @@
 //Copyright(c) 2020 Luta Vlad
 //https://github.com/meemknight/gl2d
 //////////////////////////////////////////////////
+
+
+//	todo
+//
+//	simd macro
+//	investigate more simdize functions
+//	check min gl version
+//	add particle demo
+//	mabe add a flag to load textures in pixelated modes
+//
+
+
 #include "opengl2Dlib.h"
 #include <GL/wglew.h>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
-#include <nmmintrin.h>
 
 #undef max
 
@@ -20,7 +31,7 @@ namespace gl2d
 	static internal::ShaderProgram defaultParticleShader = {};
 	static Camera defaultCamera = cameraCreateDefault();
 
-	static const char* defaultVertexShader =
+	static const char *defaultVertexShader =
 		"#version 300 es\n"
 		"precision mediump float;\n"
 		"in vec2 quad_positions;\n"
@@ -35,7 +46,7 @@ namespace gl2d
 		"	v_texture = texturePositions;\n"
 		"}\n";
 
-	static const char* defaultFragmentShader =
+	static const char *defaultFragmentShader =
 		"#version 300 es\n"
 		"precision mediump float;\n"
 		"out vec4 color;\n"
@@ -47,7 +58,7 @@ namespace gl2d
 		"    color = v_color * texture(u_sampler, v_texture);\n"
 		"}\n";
 
-	static const char* defaultParticleVertexShader =
+	static const char *defaultParticleVertexShader =
 		"#version 300 es\n"
 		"precision mediump float;\n"
 		"in vec2 quad_positions;\n"
@@ -62,7 +73,7 @@ namespace gl2d
 		"	v_texture = texturePositions;\n"
 		"}\n";
 
-	static const char* defaultParcileFragmentShader =
+	static const char *defaultParcileFragmentShader =
 		R"(#version 300 es
 precision mediump float;
 out vec4 color;
@@ -95,31 +106,32 @@ void main()
 {
 	color = v_color * texture(u_sampler, v_texture);
 	
-	
+	if(color.a <0.01)discard;
+	//color.a = 1.f;
+
+	color.a = pow(color.a, 0.2); 
+
 	color.rgb *= cFilter;
 	color.rgb = floor(color.rgb);
 	color.rgb /= cFilter;
 
 	//color.rgb = rgbTohsv(color.rgb);
-	
 
 	//color.rgb = hsvTorgb(color.rgb);
-
-	if(color.a <0.01)discard;
-	color.a = 1.f;
+	
 
 })";
 
 #pragma endregion
 
-	static errorFuncType* errorFunc = defaultErrorFunc;
+	static errorFuncType *errorFunc = defaultErrorFunc;
 
-	void defaultErrorFunc(const char* msg)
+	void defaultErrorFunc(const char *msg)
 	{
 
 	}
 
-	errorFuncType* setErrorFuncCallback(errorFuncType* newFunc)
+	errorFuncType *setErrorFuncCallback(errorFuncType *newFunc)
 	{
 		auto a = errorFunc;
 		errorFunc = newFunc;
@@ -162,7 +174,7 @@ void main()
 			return glm::vec4{ quad.s0, quad.t0, quad.s1, quad.t1 };
 		}
 
-		GLuint loadShader(const char* source, GLenum shaderType)
+		GLuint loadShader(const char *source, GLenum shaderType)
 		{
 			GLuint id = glCreateShader(shaderType);
 
@@ -174,7 +186,7 @@ void main()
 
 			if (!result)
 			{
-				char* message = 0;
+				char *message = 0;
 				int   l = 0;
 
 				glGetShaderiv(id, GL_INFO_LOG_LENGTH, &l);
@@ -194,7 +206,7 @@ void main()
 			return id;
 		}
 
-		internal::ShaderProgram createShaderProgram(const char* vertex, const char* fragment)
+		internal::ShaderProgram createShaderProgram(const char *vertex, const char *fragment)
 		{
 			internal::ShaderProgram shader = { 0 };
 
@@ -219,7 +231,7 @@ void main()
 
 			if (info != GL_TRUE)
 			{
-				char* message = 0;
+				char *message = 0;
 				int   l = 0;
 
 				glGetProgramiv(shader.id, GL_INFO_LOG_LENGTH, &l);
@@ -263,7 +275,6 @@ void main()
 		//		break;
 		//	}
 		//}
-		//todo check ?
 
 		if (wglGetProcAddress("wglSwapIntervalEXT") != nullptr)
 		{
@@ -314,7 +325,7 @@ void main()
 	///////////////////// Texture /////////////////////
 #pragma region Texture
 
-	void convertFromRetardedCoordonates(int tSizeX, int tSizeY, int x, int y, int sizeX, int sizeY, int s1, int s2, int s3, int s4, Texture_Coords* outer, Texture_Coords* inner)
+	void convertFromRetardedCoordonates(int tSizeX, int tSizeY, int x, int y, int sizeX, int sizeY, int s1, int s2, int s3, int s4, Texture_Coords *outer, Texture_Coords *inner)
 	{
 		float newX = (float)tSizeX / (float)x;
 		float newY = (float)tSizeY / (float)y;
@@ -346,7 +357,7 @@ void main()
 	///////////////////// Font /////////////////////
 #pragma region Font
 
-	void Font::createFromTTF(const unsigned char* ttf_data, const size_t ttf_data_size)
+	void Font::createFromTTF(const unsigned char *ttf_data, const size_t ttf_data_size)
 	{
 
 		size.x = 2000,
@@ -358,8 +369,8 @@ void main()
 		const size_t fontMonochromeBufferSize = size.x * size.y;
 		const size_t fontRgbaBufferSize = size.x * size.y * 4;
 
-		unsigned char* fontMonochromeBuffer = new unsigned char[fontMonochromeBufferSize];
-		unsigned char* fontRgbaBuffer = new unsigned char[fontRgbaBufferSize];
+		unsigned char *fontMonochromeBuffer = new unsigned char[fontMonochromeBufferSize];
+		unsigned char *fontRgbaBuffer = new unsigned char[fontRgbaBufferSize];
 
 		packedCharsBuffer = new stbtt_packedchar[packedCharsBufferSize];
 
@@ -413,7 +424,7 @@ void main()
 		}
 	}
 
-	void Font::createFromFile(const char* file)
+	void Font::createFromFile(const char *file)
 	{
 		std::ifstream fileFont(file, std::ios::binary);
 
@@ -430,8 +441,8 @@ void main()
 		fileFont.seekg(0, std::ios::end);
 		fileSize = (int)fileFont.tellg();
 		fileFont.seekg(0, std::ios::beg);
-		unsigned char* fileData = new unsigned char[fileSize];
-		fileFont.read((char*)fileData, fileSize);
+		unsigned char *fileData = new unsigned char[fileSize];
+		fileFont.read((char *)fileData, fileSize);
 		fileFont.close();
 
 		createFromTTF(fileData, fileSize);
@@ -535,6 +546,10 @@ void main()
 	void enableNecessaryGLFeatures()
 	{
 		glEnable(GL_BLEND);
+		glEnable(GL_MULTISAMPLE);
+		glEnable(GL_LINE_SMOOTH);
+		glEnable(GL_POLYGON_SMOOTH);
+		glEnable(GL_SAMPLE_SHADING);
 
 		glDisable(GL_DEPTH_TEST);
 
@@ -954,20 +969,20 @@ void main()
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[Renderer2DBufferType::quadPositions]);
 		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[Renderer2DBufferType::quadColors]);
 		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void *)0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[Renderer2DBufferType::texturePositions]);
 		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
 
 		glBindVertexArray(0);
 	}
 
-	glm::vec4 Renderer2D::toScreen(const glm::vec4& transform)
+	glm::vec4 Renderer2D::toScreen(const glm::vec4 &transform)
 	{
 		//We need to flip texture_transforms.y
 		const float transformsY = transform.y * -1;
@@ -1007,7 +1022,7 @@ void main()
 		return glm::vec4(v1.x, v1.y, v3.x, v3.y);
 	}
 
-	glm::vec2 Renderer2D::getTextSize(const char* text, const Font font,
+	glm::vec2 Renderer2D::getTextSize(const char *text, const Font font,
 		const float size, const float spacing, const float line_space)
 	{
 		glm::vec2 position = {};
@@ -1080,7 +1095,7 @@ void main()
 
 	}
 
-	void Renderer2D::renderText(glm::vec2 position, const char* text, const Font font,
+	void Renderer2D::renderText(glm::vec2 position, const char *text, const Font font,
 		const Color4f color, const float size, const float spacing, const float line_space, bool showInCenter,
 		const Color4f ShadowColor
 		, const Color4f LightColor
@@ -1255,7 +1270,7 @@ void main()
 		return s;
 	}
 
-	void Texture::createFromBuffer(const char* image_data, const int width, const int height)
+	void Texture::createFromBuffer(const char *image_data, const int width, const int height)
 	{
 		GLuint id = 0;
 
@@ -1264,18 +1279,23 @@ void main()
 		glGenTextures(1, &id);
 		glBindTexture(GL_TEXTURE_2D, id);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image_data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
 
 		this->id = id;
 	}
 
-	void Texture::create1PxSquare(const char* b)
+	void Texture::create1PxSquare(const char *b)
 	{
 		if (b == nullptr)
 		{
@@ -1287,7 +1307,7 @@ void main()
 				0xff
 			};
 
-			createFromBuffer((char*)buff, 1, 1);
+			createFromBuffer((char *)buff, 1, 1);
 		}
 		else
 		{
@@ -1296,7 +1316,7 @@ void main()
 
 	}
 
-	void Texture::createFromFileData(const unsigned char* image_file_data, const size_t image_file_size)
+	void Texture::createFromFileData(const unsigned char *image_file_data, const size_t image_file_size)
 	{
 		stbi_set_flip_vertically_on_load(true);
 
@@ -1304,15 +1324,15 @@ void main()
 		int height = 0;
 		int channels = 0;
 
-		const unsigned char* decodedImage = stbi_load_from_memory(image_file_data, (int)image_file_size, &width, &height, &channels, 4);
+		const unsigned char *decodedImage = stbi_load_from_memory(image_file_data, (int)image_file_size, &width, &height, &channels, 4);
 
-		createFromBuffer((const char*)decodedImage, width, height);
+		createFromBuffer((const char *)decodedImage, width, height);
 
 		//Replace stbi allocators
-		free((void*)decodedImage);
+		free((void *)decodedImage);
 	}
 
-	void Texture::createFromFileDataWithPixelPadding(const unsigned char* image_file_data, const size_t image_file_size, int blockSize)
+	void Texture::createFromFileDataWithPixelPadding(const unsigned char *image_file_data, const size_t image_file_size, int blockSize)
 	{
 		stbi_set_flip_vertically_on_load(true);
 
@@ -1320,7 +1340,7 @@ void main()
 		int height = 0;
 		int channels = 0;
 
-		const unsigned char* decodedImage = stbi_load_from_memory(image_file_data, (int)image_file_size, &width, &height, &channels, 4);
+		const unsigned char *decodedImage = stbi_load_from_memory(image_file_data, (int)image_file_size, &width, &height, &channels, 4);
 
 		/*
 		int newW = width + (width / blockSize);
@@ -1376,7 +1396,7 @@ void main()
 		};
 
 
-		unsigned char* newData = new unsigned char[newW * newH * 4];
+		unsigned char *newData = new unsigned char[newW * newH * 4];
 		ZeroMemory(newData, newW * newH * 4);
 
 		auto getNew = [newData, newW](int x, int y, int c)
@@ -1405,11 +1425,11 @@ void main()
 					yNo ||
 
 					((
-						x == 0 || x == newW - 1
-						|| (x % (blockSize + 2)) == 0 ||
-						((x + 1) % (blockSize + 2)) == 0
-						)
-						)
+					x == 0 || x == newW - 1
+					|| (x % (blockSize + 2)) == 0 ||
+					((x + 1) % (blockSize + 2)) == 0
+					)
+					)
 
 					)
 				{
@@ -1495,14 +1515,14 @@ void main()
 		}
 
 
-		createFromBuffer((const char*)newData, newW, newH);
+		createFromBuffer((const char *)newData, newW, newH);
 
 		//Replace stbi allocators
-		free((void*)decodedImage);
+		free((void *)decodedImage);
 		delete[] newData;
 	}
 
-	void Texture::loadFromFile(const char* fileName)
+	void Texture::loadFromFile(const char *fileName)
 	{
 		std::ifstream file(fileName, std::ios::binary);
 
@@ -1519,8 +1539,8 @@ void main()
 		file.seekg(0, std::ios::end);
 		fileSize = (int)file.tellg();
 		file.seekg(0, std::ios::beg);
-		unsigned char* fileData = new unsigned char[fileSize];
-		file.read((char*)fileData, fileSize);
+		unsigned char *fileData = new unsigned char[fileSize];
+		file.read((char *)fileData, fileSize);
 		file.close();
 
 		createFromFileData(fileData, fileSize);
@@ -1529,7 +1549,7 @@ void main()
 
 	}
 
-	void Texture::loadFromFileWithPixelPadding(const char* fileName, int blockSize)
+	void Texture::loadFromFileWithPixelPadding(const char *fileName, int blockSize)
 	{
 		std::ifstream file(fileName, std::ios::binary);
 
@@ -1546,8 +1566,8 @@ void main()
 		file.seekg(0, std::ios::end);
 		fileSize = (int)file.tellg();
 		file.seekg(0, std::ios::beg);
-		unsigned char* fileData = new unsigned char[fileSize];
-		file.read((char*)fileData, fileSize);
+		unsigned char *fileData = new unsigned char[fileSize];
+		file.read((char *)fileData, fileSize);
 		file.close();
 
 		createFromFileDataWithPixelPadding(fileData, fileSize, blockSize);
@@ -1579,12 +1599,12 @@ void main()
 			 0, zoom, position.y,
 			0, 0, 1,
 		};
-		return m; //todo could have problems
+		return m; //todo not tested
 	}
 
 	void Camera::follow(glm::vec2 pos, float speed, float max, float w, float h)
 	{
-		pos.x -= w / 2.F;
+		pos.x -= w / 2.f;
 		pos.y -= h / 2.f;
 
 		glm::vec2 delta = pos - position;
@@ -1613,6 +1633,54 @@ void main()
 				position += delta * speed;
 			}
 
+	}
+
+	glm::vec2 Camera::convertPoint(const glm::vec2 &p, float windowW, float windowH)
+	{
+		glm::vec2 r = p;
+
+
+		//Apply camera transformations
+		r.x += this->position.x;
+		r.y += this->position.y;
+
+		{
+			glm::vec2 cameraCenter = { this->position.x + windowW / 2, -this->position.y - windowH / 2 };
+
+			r = rotateAroundPoint(r,
+				cameraCenter,
+				this->rotation);
+		}
+
+		{
+			glm::vec2 cameraCenter = { this->position.x + windowW / 2, this->position.y + windowH / 2 };
+
+			r = scaleAroundPoint(r,
+				cameraCenter,
+				1.f / zoom);
+		}
+
+		//if (this->rotation != 0)
+		//{
+		//	glm::vec2 cameraCenter;
+		//
+		//	cameraCenter.x = windowW / 2.0f;
+		//	cameraCenter.y = windowH / 2.0f;
+		//
+		//	r = rotateAroundPoint(r, cameraCenter, this->rotation);
+		//
+		//}
+
+		//{
+		//	glm::vec2 cameraCenter;
+		//	cameraCenter.x = windowW / 2.0f;
+		//	cameraCenter.y = -windowH / 2.0f;
+		//
+		//	r = scaleAroundPoint(r, cameraCenter, this->zoom);
+		//
+		//}
+
+		return r;
 	}
 
 	void FrameBuffer::create(unsigned int w, unsigned int h)
@@ -1646,7 +1714,6 @@ void main()
 
 	}
 
-	//todo vlod: will probasbly also clear the fbo
 	void FrameBuffer::resize(unsigned int w, unsigned int h)
 	{
 		glBindTexture(GL_TEXTURE_2D, texture.id);
@@ -1672,7 +1739,10 @@ void main()
 	void FrameBuffer::clear()
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+		//glClearColor(1, 1, 1, 0);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		//glClearColor(0, 0, 0, 0);
+
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
@@ -1715,9 +1785,13 @@ void main()
 
 	void ParticleSystem::initParticleSystem(int size)
 	{
+		//simdize size
+		size += 4 - (size % 4);
+
+
 		this->size = size;
 
-#pragma region allocations
+	#pragma region allocations
 
 		if (posX)
 			delete[] posX;
@@ -1799,7 +1873,7 @@ void main()
 		textures = new gl2d::Texture * [size32Aligned];
 		emitTime = new float[size32Aligned];
 
-#pragma endregion
+	#pragma endregion
 
 		for (int i = 0; i < size; i++)
 		{
@@ -1815,10 +1889,30 @@ void main()
 
 	}
 
+	#if defined(_MSC_VER)
+	 /* Microsoft C/C++-compatible compiler */
+	#include <intrin.h>
+	#elif defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
+		 /* GCC-compatible compiler, targeting x86/x86-64 */
+	#include <x86intrin.h>
+	#elif defined(__GNUC__) && defined(__ARM_NEON__)
+		 /* GCC-compatible compiler, targeting ARM with NEON */
+	#include <arm_neon.h>
+	#elif defined(__GNUC__) && defined(__IWMMXT__)
+		 /* GCC-compatible compiler, targeting ARM with WMMX */
+	#include <mmintrin.h>
+	#elif (defined(__GNUC__) || defined(__xlC__)) && (defined(__VEC__) || defined(__ALTIVEC__))
+		 /* XLC or GCC-compatible compiler, targeting PowerPC with VMX/VSX */
+	#include <altivec.h>
+	#elif defined(__GNUC__) && defined(__SPE__)
+		 /* GCC-compatible compiler, targeting PowerPC with SPE */
+	#include <spe.h>
+	#endif
+
 	void ParticleSystem::applyMovement(float deltaTime)
 	{
 
-#pragma region newParticles
+	#pragma region newParticles
 
 		int recreatedParticlesThisFrame = 0;
 
@@ -1857,7 +1951,7 @@ void main()
 		//}
 
 
-#pragma endregion
+	#pragma endregion
 
 
 		for (int i = 0; i < size; i++)
@@ -1875,52 +1969,6 @@ void main()
 				{
 
 					this->emitParticleWave(deathRattle[i], { posX[i], posY[i] });
-
-#if 0
-
-					int createdParts = 0;
-					for (int j = 0; j < size; j++)
-					{
-
-						if (sizeXY[j] == 0 && i != j)
-						{
-							createdParts++;
-
-							duration[j] = rand(deathRattle[i]->particleLifeTime);
-							durationTotal[j] = duration[j];
-
-							//reset particle
-							posX[j] = posX[i] + rand(deathRattle[i]->positionX);
-							posY[j] = posY[i] + rand(deathRattle[i]->positionY);
-							directionX[j] = rand(deathRattle[i]->directionX);
-							directionY[j] = rand(deathRattle[i]->directionY);
-							rotation[j] = rand(deathRattle[i]->rotation);
-							sizeXY[j] = rand(deathRattle[i]->createApearence.size);
-							dragX[j] = rand(deathRattle[i]->dragX);
-							dragY[j] = rand(deathRattle[i]->dragY);
-							color[j].x = rand({ deathRattle[i]->createApearence.color1.x, deathRattle[i]->createApearence.color2.x });
-							color[j].y = rand({ deathRattle[i]->createApearence.color1.y, deathRattle[i]->createApearence.color2.y });
-							color[j].z = rand({ deathRattle[i]->createApearence.color1.z, deathRattle[i]->createApearence.color2.z });
-							color[j].w = rand({ deathRattle[i]->createApearence.color1.w, deathRattle[i]->createApearence.color2.w });
-							rotationSpeed[j] = rand(deathRattle[i]->rotationSpeed);
-							rotationDrag[j] = rand(deathRattle[i]->rotationDrag);
-							textures[j] = deathRattle[i]->texturePtr;
-							tranzitionType[j] = deathRattle[i]->tranzitionType;
-							deathRattle[j] = deathRattle[i]->deathRattle;
-							thisParticleSettings[j] = deathRattle[i];
-							emitTime[j] = rand(thisParticleSettings[j]->subemitParticleTime);
-							emitParticle[j] = thisParticleSettings[j]->subemitParticle;
-
-
-							if (createdParts > deathRattle[i]->onCreateCount)
-							{
-								break;
-							}
-						}
-
-					}
-
-#endif
 
 				}
 
@@ -1941,57 +1989,126 @@ void main()
 
 		}
 
+		__m128 _deltaTime = _mm_set1_ps(deltaTime);
 
-#pragma region applyDrag
+	#pragma region applyDrag
+
+	#if GL2D_SIMD == 0
+		for (int i = 0; i < size; i++)
+		{
+			//if (duration[i] > 0)
+			directionX[i] += deltaTime * dragX[i];
+		}
 
 		for (int i = 0; i < size; i++)
 		{
-			if (duration[i] > 0)
-				directionX[i] += deltaTime * dragX[i];
+			//if (duration[i] > 0)
+			directionY[i] += deltaTime * dragY[i];
 
 		}
 
 		for (int i = 0; i < size; i++)
 		{
-			if (duration[i] > 0)
-				directionY[i] += deltaTime * dragY[i];
+
+			//if (duration[i] > 0)
+			rotationSpeed[i] += deltaTime * rotationDrag[i];
+		}
+	#else
+
+		for (int i = 0; i < size; i += 4)
+		{
+			//directionX[i] += deltaTime * dragX[i];
+
+			__m128 *dir = (__m128 *) & (directionX[i]);
+			__m128 *drag = (__m128 *) & (dragX[i]);
+
+			*dir = _mm_fmadd_ps(_deltaTime, *drag, *dir);
+		}
+
+		for (int i = 0; i < size; i += 4)
+		{
+			//directionY[i] += deltaTime * dragY[i];
+
+			__m128 *dir = (__m128 *) & (directionY[i]);
+			__m128 *drag = (__m128 *) & (dragY[i]);
+
+			*dir = _mm_fmadd_ps(_deltaTime, *drag, *dir);
+		}
+
+		for (int i = 0; i < size; i++)
+		{
+			//rotationSpeed[i] += deltaTime * rotationDrag[i];
+
+			__m128 *dir = (__m128 *) & (rotationSpeed[i]);
+			__m128 *drag = (__m128 *) & (rotationDrag[i]);
+
+			*dir = _mm_fmadd_ps(_deltaTime, *drag, *dir);
+		}
+	#endif
+
+
+
+	#pragma endregion
+
+
+	#pragma region apply movement
+
+			//todo simd
+
+	#if GL2D_SIMD == 0
+		for (int i = 0; i < size; i++)
+		{
+			//if (duration[i] > 0)
+			posX[i] += deltaTime * directionX[i];
+
+		}
+
+
+		for (int i = 0; i < size; i++)
+		{
+			//if (duration[i] > 0)
+			posY[i] += deltaTime * directionY[i];
 
 		}
 
 		for (int i = 0; i < size; i++)
 		{
-
-			if (duration[i] > 0)
-				rotationSpeed[i] += deltaTime * rotationDrag[i];
+			//if (duration[i] > 0)
+			rotation[i] += deltaTime * rotationSpeed[i];
 
 		}
-#pragma endregion
+	#else 
+		for (int i = 0; i < size; i += 4)
+		{
+			//posX[i] += deltaTime * directionX[i];
+			__m128 *dir = (__m128 *) & (posX[i]);
+			__m128 *drag = (__m128 *) & (directionX[i]);
 
+			*dir = _mm_fmadd_ps(_deltaTime, *drag, *dir);
+		}
 
-#pragma region apply movement
 
 		for (int i = 0; i < size; i++)
 		{
-			if (duration[i] > 0)
-				posX[i] += deltaTime * directionX[i];
+			//posY[i] += deltaTime * directionY[i];
+			__m128 *dir = (__m128 *) & (posY[i]);
+			__m128 *drag = (__m128 *) & (directionY[i]);
 
+			*dir = _mm_fmadd_ps(_deltaTime, *drag, *dir);
 		}
 
 		for (int i = 0; i < size; i++)
 		{
-			if (duration[i] > 0)
-				posY[i] += deltaTime * directionY[i];
+			//rotation[i] += deltaTime * rotationSpeed[i];
+			__m128 *dir = (__m128 *) & (rotation[i]);
+			__m128 *drag = (__m128 *) & (rotationSpeed[i]);
 
+			*dir = _mm_fmadd_ps(_deltaTime, *drag, *dir);
 		}
 
-		for (int i = 0; i < size; i++)
-		{
-			if (duration[i] > 0)
-				rotation[i] += deltaTime * rotationSpeed[i];
+	#endif
 
-		}
-
-#pragma endregion
+	#pragma endregion
 
 
 
@@ -2026,6 +2143,39 @@ void main()
 		if (dragX)
 			delete[] dragX;
 
+		if (duration)
+			delete[] duration;
+
+		if (durationTotal)
+			delete[] durationTotal;
+
+		if (color)
+			delete[] color;
+
+		if (rotationSpeed)
+			delete[] rotationSpeed;
+
+		if (rotationDrag)
+			delete[] rotationDrag;
+
+		if (emitTime)
+			delete[] emitTime;
+
+		if (tranzitionType)
+			delete[] tranzitionType;
+
+		if (deathRattle)
+			delete[] deathRattle;
+
+		if (thisParticleSettings)
+			delete[] thisParticleSettings;
+
+		if (emitParticle)
+			delete[] emitParticle;
+
+		if (textures)
+			delete[] textures;
+
 		posX = 0;
 		posY = 0;
 		directionX = 0;
@@ -2034,10 +2184,22 @@ void main()
 		sizeXY = 0;
 		dragX = 0;
 		dragY = 0;
+		duration = 0;
+		durationTotal = 0;
+		color = 0;
+		rotationSpeed = 0;
+		rotationDrag = 0;
+		emitTime = 0;
+		tranzitionType = 0;
+		deathRattle = 0;
+		thisParticleSettings = 0;
+		emitParticle = 0;
+		textures = 0;
+
 
 	}
 
-	void ParticleSystem::emitParticleWave(ParticleSettings* ps, glm::vec2 pos)
+	void ParticleSystem::emitParticleWave(ParticleSettings *ps, glm::vec2 pos)
 	{
 		int recreatedParticlesThisFrame = 0;
 
@@ -2089,23 +2251,28 @@ void main()
 
 	}
 
-	void ParticleSystem::draw(Renderer2D& r)
+	void ParticleSystem::draw(Renderer2D &r)
 	{
 
 		unsigned int w = r.windowW;
 		unsigned int h = r.windowH;
 
+		auto cam = r.currentCamera;
+
 		if (postProcessing)
 		{
+
+			r.flush();
+
 			if (fb.texture.GetSize() != glm::ivec2{ w / pixelateFactor,h / pixelateFactor })
 			{
 				fb.resize(w / pixelateFactor, h / pixelateFactor);
 
 			}
 
-			r.flush();
-
 			r.updateWindowMetrics(w / pixelateFactor, h / pixelateFactor);
+
+
 		}
 
 
@@ -2117,25 +2284,31 @@ void main()
 
 			switch (this->tranzitionType[i])
 			{
-			case gl2d::TRANZITION_TYPES::none:
+				case gl2d::TRANZITION_TYPES::none:
 				lifePerc = 1;
 				break;
-			case gl2d::TRANZITION_TYPES::linear:
+				case gl2d::TRANZITION_TYPES::linear:
 
 				break;
-			case gl2d::TRANZITION_TYPES::curbe:
+				case gl2d::TRANZITION_TYPES::curbe:
 				lifePerc *= lifePerc;
 				break;
-			case gl2d::TRANZITION_TYPES::abruptCurbe:
+				case gl2d::TRANZITION_TYPES::abruptCurbe:
 				lifePerc *= lifePerc * lifePerc;
 				break;
-			case gl2d::TRANZITION_TYPES::wave:
+				case gl2d::TRANZITION_TYPES::wave:
 				lifePerc = (std::cos(lifePerc * 5 * 3.141592) * lifePerc + lifePerc) / 2.f;
 				break;
-			case gl2d::TRANZITION_TYPES::wave2:
+				case gl2d::TRANZITION_TYPES::wave2:
 				lifePerc = std::cos(lifePerc * 5 * 3.141592) * std::sqrt(lifePerc) * 0.9f + 0.1f;
 				break;
-			default:
+				case gl2d::TRANZITION_TYPES::delay:
+				lifePerc = (std::cos(lifePerc * 3.141592 * 2) * std::sin(lifePerc * lifePerc)) / 2.f;
+				break;
+				case gl2d::TRANZITION_TYPES::delay2:
+				lifePerc = (std::atan(2 * lifePerc * lifePerc * lifePerc * 3.141592)) / 2.f;
+				break;
+				default:
 				break;
 			}
 
@@ -2171,7 +2344,29 @@ void main()
 
 			if (postProcessing)
 			{
-				p = pos / float(pixelateFactor);
+				r.currentCamera = cam;
+
+				p = pos / pixelateFactor;
+
+				//p.x += 200;
+				//p.y += 200;
+
+				p.x -= r.currentCamera.position.x / pixelateFactor;
+				p.y -= r.currentCamera.position.y / pixelateFactor;
+				//
+
+				r.currentCamera.position = {};
+				//r.currentCamera.position.x += w / (2.f );
+				//r.currentCamera.position.y += h / (2.f );
+				//
+				//r.currentCamera.position /= pixelateFactor/2.f;
+				//
+				//r.currentCamera.position.x -= w / (2.f);
+				//r.currentCamera.position.y -= h / (2.f);
+
+
+				//r.currentCamera.position += glm::vec2{w / (pixelateFactor * 2.f), h / (pixelateFactor*2.f)};
+				//r.currentCamera.position *= pixelateFactor;
 				//c.w = sqrt(c.w);
 				// c.w = 1;
 			}
@@ -2196,11 +2391,14 @@ void main()
 
 		if (postProcessing)
 		{
-
 			fb.clear();
 			r.flushFBO(fb);
 
+
+
 			r.updateWindowMetrics(w, h);
+			r.currentCamera.setDefault();
+
 
 			auto s = r.currentShader;
 
@@ -2213,6 +2411,7 @@ void main()
 
 		}
 
+		r.currentCamera = cam;
 
 	}
 

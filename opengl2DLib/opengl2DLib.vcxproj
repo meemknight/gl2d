@@ -26,8 +26,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="opengl2Dlib.h" />
-    <ClInclude Include="stb_image.h" />
-    <ClInclude Include="stb_truetype.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
