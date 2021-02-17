@@ -19,6 +19,7 @@ int main()
 
 	GLFWwindow *wind = glfwCreateWindow(840, 640, "window", 0, 0);
 	glfwMakeContextCurrent(wind);
+
 	glewInit();
 
 #pragma endregion
@@ -124,8 +125,6 @@ int main()
 			}
 		
 		}
-
-
 
 		renderer.flush();
 

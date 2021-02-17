@@ -12,6 +12,7 @@
 //	check min gl version
 //	add particle demo
 //	mabe add a flag to load textures in pixelated modes
+//	add linux support
 //
 
 
@@ -276,6 +277,7 @@ void main()
 		//	}
 		//}
 
+		//todo linux suport
 		if (wglGetProcAddress("wglSwapIntervalEXT") != nullptr)
 		{
 			extensions.WGL_EXT_swap_control_ext = true;
@@ -288,6 +290,7 @@ void main()
 
 	bool setVsync(bool b)
 	{
+		//todo linux suport
 		if (extensions.WGL_EXT_swap_control_ext)
 		{
 			wglSwapIntervalEXT(b);
@@ -361,9 +364,9 @@ void main()
 	{
 
 		size.x = 2000,
-			size.y = 2000,
-			max_height = 0,
-			packedCharsBufferSize = sizeof(stbtt_packedchar) * ('~' - ' ');
+		size.y = 2000,
+		max_height = 0,
+		packedCharsBufferSize = sizeof(stbtt_packedchar) * ('~' - ' ');
 
 		//STB TrueType will give us a one channel buffer of the font that we then convert to RGBA for OpenGL
 		const size_t fontMonochromeBufferSize = size.x * size.y;
