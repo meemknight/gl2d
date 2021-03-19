@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-//opengl2Dlib.cpp				1.1
+//opengl2Dlib.cpp				1.2
 //Copyright(c) 2020 Luta Vlad
 //https://github.com/meemknight/gl2d
 //////////////////////////////////////////////////
@@ -7,20 +7,27 @@
 
 //	todo
 //
-//	simd macro
 //	investigate more simdize functions
+//	mabe check at runtime cpu features
 //	check min gl version
 //	add particle demo
 //	mabe add a flag to load textures in pixelated modes
 //	add linux support
+//	remake some functions
 //
 
 
-#include "opengl2Dlib.h"
+#include "gl2d.h"
 #include <GL/wglew.h>
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+
+
+#ifdef _MSC_VER
+	#pragma warning( push )
+	#pragma warning( disable : 4244 4305 4267 4996 4018)
+#endif
 
 #undef max
 
@@ -433,9 +440,9 @@ void main()
 
 		if (!fileFont.is_open())
 		{
-			char c[256] = { 0 };
-			strcat_s(c, "error openning: ");
-			strcat_s(c + strlen(c), 200, file);
+			char c[300] = { 0 };
+			strcat(c, "error openning: ");
+			strcat(c + strlen(c), file);
 			errorFunc(c);
 			return;
 		}
@@ -1531,9 +1538,9 @@ void main()
 
 		if (!file.is_open())
 		{
-			char c[256] = { 0 };
-			strcat_s(c, "error openning: ");
-			strcat_s(c + strlen(c), 200, fileName);
+			char c[300] = { 0 };
+			strcat(c, "error openning: ");
+			strcat(c + strlen(c), fileName);
 			errorFunc(c);
 			return;
 		}
@@ -1558,9 +1565,9 @@ void main()
 
 		if (!file.is_open())
 		{
-			char c[256] = { 0 };
-			strcat_s(c, "error openning: ");
-			strcat_s(c + strlen(c), 200, fileName);
+			char c[300] = { 0 };
+			strcat(c, "error openning: ");
+			strcat(c + strlen(c), fileName);
 			errorFunc(c);
 			return;
 		}
@@ -2431,3 +2438,7 @@ void main()
 	}
 
 }
+
+#ifdef _MSC_VER
+	#pragma warning( pop )
+#endif

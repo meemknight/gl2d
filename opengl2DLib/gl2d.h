@@ -30,8 +30,13 @@
 #pragma once
 
 //enable simd functions
-//set it to 0 if it doesn't work on your platform
+//set GL2D_SIMD to 0 if it doesn't work on your platform
+#ifdef PLATFORM_WIN32
 #define GL2D_SIMD 1
+#else
+#define GL2D_SIMD 0
+#endif
+
 
 
 #include <GL/glew.h>
@@ -42,6 +47,8 @@
 
 namespace gl2d
 {
+
+	//todo proper cmake, rename repo
 
 	void init();
 
