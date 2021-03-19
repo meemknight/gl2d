@@ -18,7 +18,7 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="opengl2Dlib.cpp">
+    <ClCompile Include="gl2d.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="stb_image.cpp">
@@ -29,7 +29,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="opengl2Dlib.h">
+    <ClInclude Include="gl2d.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

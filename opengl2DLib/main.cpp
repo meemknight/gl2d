@@ -6,7 +6,7 @@
 #include <Windows.h>
 #include <string>
 
-#include "opengl2Dlib.h"
+#include "gl2d.h"
 
 int main() 
 {

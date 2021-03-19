@@ -20,18 +20,19 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="opengl2Dlib.cpp" />
+    <ClCompile Include="gl2d.cpp" />
     <ClCompile Include="stb_image.cpp" />
     <ClCompile Include="stb_truetype.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="opengl2Dlib.h" />
+    <ClInclude Include="gl2d.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{c439d149-8131-4900-9389-0531e42c53d4}</ProjectGuid>
     <RootNamespace>opengl2DLib</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>gl2d</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
