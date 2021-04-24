@@ -557,9 +557,9 @@ void main()
 	{
 		glEnable(GL_BLEND);
 		glEnable(GL_MULTISAMPLE);
-		glEnable(GL_LINE_SMOOTH);
-		glEnable(GL_POLYGON_SMOOTH);
-		glEnable(GL_SAMPLE_SHADING);
+		//glEnable(GL_LINE_SMOOTH);
+		//glEnable(GL_POLYGON_SMOOTH);
+		//glEnable(GL_SAMPLE_SHADING);
 
 		glDisable(GL_DEPTH_TEST);
 
@@ -1406,8 +1406,7 @@ void main()
 		};
 
 
-		unsigned char *newData = new unsigned char[newW * newH * 4];
-		ZeroMemory(newData, newW * newH * 4);
+		unsigned char *newData = new unsigned char[newW * newH * 4]{};
 
 		auto getNew = [newData, newW](int x, int y, int c)
 		{
@@ -1707,7 +1706,7 @@ void main()
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.id, 0);
 
-		//glDrawBuffer(GL_COLOR_ATTACHMENT0);
+		//glDrawBuffer(GL_COLOR_ATTACHMENT0); //todo why is this commented out ?
 
 		//glGenTextures(1, &depthtTexture);
 		//glBindTexture(GL_TEXTURE_2D, depthtTexture);
