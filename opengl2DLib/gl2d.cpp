@@ -300,8 +300,8 @@ void main()
 		if (extensions.wglSwapIntervalEXT != nullptr)
 		{
 			//extensions.wglSwapIntervalEXT(b);
-			wglSwapIntervalEXT(b);
-			return true;
+			bool rezult = wglSwapIntervalEXT(b);
+			return rezult;
 		}
 		else
 		{
@@ -1802,63 +1802,38 @@ void main()
 
 	#pragma region allocations
 
-		if (posX)
-			delete[] posX;
+		delete[] posX;
+		delete[] posY;
 
-		if (posY)
-			delete[] posY;
+		delete[] directionX;
+		delete[] directionY;
 
+		delete[] rotation;
 
-		if (directionX)
-			delete[] directionX;
+		delete[] sizeXY;
 
-		if (directionY)
-			delete[] directionY;
+		delete[] dragY;
+		delete[] dragX;
 
-		if (rotation)
-			delete[] rotation;
+		delete[] duration;
+		delete[] durationTotal;
 
-		if (sizeXY)
-			delete[] sizeXY;
+		delete[] color;
 
-		if (dragY)
-			delete[] dragY;
+		delete[] rotationSpeed;
+		delete[] rotationDrag;
 
-		if (dragX)
-			delete[] dragX;
+		delete[] deathRattle;
 
-		if (duration)
-			delete[] duration;
+		delete[] textures;
 
-		if (durationTotal)
-			delete[] durationTotal;
+		delete[] tranzitionType;
 
-		if (color)
-			delete[] color;
+		delete[] thisParticleSettings;
 
-		if (rotationSpeed)
-			delete[] rotationSpeed;
+		delete[] emitTime;
 
-		if (rotationDrag)
-			delete[] rotationDrag;
-
-		if (deathRattle)
-			delete[] deathRattle;
-
-		if (textures)
-			delete[] textures;
-
-		if (tranzitionType)
-			delete[] tranzitionType;
-
-		if (thisParticleSettings)
-			delete[] thisParticleSettings;
-
-		if (emitTime)
-			delete[] emitTime;
-
-		if (emitParticle)
-			delete[] emitParticle;
+		delete[] emitParticle;
 
 		int size32Aligned = size + (4 - (size % 4));
 
