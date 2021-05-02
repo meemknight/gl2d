@@ -261,9 +261,11 @@ void main()
 		}
 	}
 
+	typedef BOOL(WINAPI *PFNWGLSWAPINTERVALEXTPROC) (int interval);
+
 	struct
 	{
-		bool WGL_EXT_swap_control_ext;
+		PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
 	}extensions = {};
 
 	bool hasInitialized = 0;
@@ -285,10 +287,7 @@ void main()
 		//}
 
 		//todo linux suport
-		if (wglGetProcAddress("wglSwapIntervalEXT") != nullptr)
-		{
-			extensions.WGL_EXT_swap_control_ext = true;
-		}
+		extensions.wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC) wglGetProcAddress("wglSwapIntervalEXT");
 
 		defaultShader = internal::createShaderProgram(defaultVertexShader, defaultFragmentShader);
 		defaultParticleShader = internal::createShaderProgram(defaultParticleVertexShader, defaultParcileFragmentShader);
@@ -298,8 +297,9 @@ void main()
 	bool setVsync(bool b)
 	{
 		//todo linux suport
-		if (extensions.WGL_EXT_swap_control_ext)
+		if (extensions.wglSwapIntervalEXT != nullptr)
 		{
+			//extensions.wglSwapIntervalEXT(b);
 			wglSwapIntervalEXT(b);
 			return true;
 		}

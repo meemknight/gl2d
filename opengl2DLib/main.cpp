@@ -26,6 +26,8 @@ int main()
 
 	gl2d::init();
 
+	gl2d::setVsync(1);
+
 	gl2d::Renderer2D renderer;
 	renderer.create();
 	
