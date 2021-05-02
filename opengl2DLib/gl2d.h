@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-//opengl2Dlib.h				1.2
+//gl2d.h				1.2
 //Copyright(c) 2020 Luta Vlad
 //https://github.com/meemknight/gl2d
 //
