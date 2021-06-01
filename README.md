@@ -11,7 +11,7 @@ Update it's window size if the window sizechanged
 ---
 
 ![](https://github.com/meemknight/photos/blob/master/particle1.png)
-![](https://github.com/meemknight/photos/blob/master/cmakesetup1.png)
+![](https://github.com/meemknight/photos/blob/master/cmakeSetup1.png)
 
 features:
 - [x] draw rectangles
@@ -28,3 +28,5 @@ todo:
 - [ ] better api
 - [ ] documentation
 - [ ] easier to use custom post process effect for particles
+- [ ] add cmake
+- [ ] add more examples
