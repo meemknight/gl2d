@@ -51,7 +51,7 @@ int main()
 		float deltaTime = (float)(newTime - lastTime) / 1000.f;
 		lastTime = GetTickCount();
 
-		if(GetAsyncKeyState('W'))
+		if (GetAsyncKeyState('W'))
 		{
 			renderer.currentCamera.position.y -= speed * deltaTime;
 		}
@@ -89,10 +89,10 @@ int main()
 		renderer.renderText({ 0,200 }, "text Vlad", f, Colors_Blue);
 		renderer.renderText({ 0,300 }, "text Mihai", f, Colors_Green);
 
-		renderer.renderRectangle({ 100,150, 100, 100 }, {1,0,0,0.5}, { 0,0 }, 0);
+		renderer.renderRectangle({ 100,150, 100, 100 }, { 1,0,0,0.5 }, { 0,0 }, 0);
 
-
-		renderer.renderRectangle({ 300,300,10,10 }, Colors_Orange);
+		glm::vec4 c[4] = {Colors_Orange, Colors_Orange, Colors_Green, Colors_Blue};
+		renderer.renderRectangle({ 300,300,10,10 }, c);
 
 		glm::vec2 textSize = renderer.getTextSize(text.c_str(), f);
 		renderer.renderText({ 300,300 }, text.c_str(), f, Colors_Gray,

@@ -11,14 +11,17 @@
 //	mabe check at runtime cpu features
 //	check min gl version
 //	add particle demo
-//	mabe add a flag to load textures in pixelated modes
-//	add linux support
+//	mabe add a flag to load textures in pixelated modes or not
 //	remake some functions
 //
 
 
 #include "gl2d.h"
+
+#ifdef _WIN32
 #include <GL/wglew.h>
+#endif
+
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -286,8 +289,10 @@ void main()
 		//	}
 		//}
 
-		//todo linux suport
+#ifdef _WIN32
+		//add linux suport
 		extensions.wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC) wglGetProcAddress("wglSwapIntervalEXT");
+#endif
 
 		defaultShader = internal::createShaderProgram(defaultVertexShader, defaultFragmentShader);
 		defaultParticleShader = internal::createShaderProgram(defaultParticleVertexShader, defaultParcileFragmentShader);
@@ -296,7 +301,7 @@ void main()
 
 	bool setVsync(bool b)
 	{
-		//todo linux suport
+		//add linux suport
 		if (extensions.wglSwapIntervalEXT != nullptr)
 		{
 			//extensions.wglSwapIntervalEXT(b);
@@ -845,7 +850,6 @@ void main()
 		//float end = rightBorder;
 		//float size = topBorder;
 		//
-		////todo replace with 1
 		//while(1)
 		//{
 		//	if(topPos.x + size <= end)
@@ -917,7 +921,7 @@ void main()
 		topleftTexPos.z = inner_texture_coords.x;
 		topleftTexPos.w = inner_texture_coords.y;
 		renderRectangle(topleft, colorData, Position2D{ 0, 0 }, 0, texture, topleftTexPos);
-		//todo repair
+		//repair here?
 
 
 		//topright
@@ -1606,7 +1610,7 @@ void main()
 			 0, zoom, position.y,
 			0, 0, 1,
 		};
-		return m; //todo not tested
+		return m; //todo not tested, add rotation
 	}
 
 	void Camera::follow(glm::vec2 pos, float speed, float max, float w, float h)
@@ -1779,59 +1783,32 @@ void main()
 		float Xpadding = 1.f / mapXsize;
 		float Ypadding = 1.f / mapYsize;
 
-		//todo
+		glm::vec4 noFlip = { x * xSize + Xpadding, 1 - (y * ySize) - Ypadding, (x + 1) * xSize - Xpadding, 1.f - ((y + 1) * ySize) + Ypadding };
+
 		if (flip)
 		{
-			return { (x + 1) * xSize - Xpadding, 1 - (y * ySize) - Ypadding, (x)*xSize + Xpadding, 1.f - ((y + 1) * ySize) + Ypadding };
+			glm::vec4 flip = { noFlip.z, noFlip.y, noFlip.x, noFlip.w };
+
+			return flip;
 		}
 		else
 		{
-			return { x * xSize + Xpadding, 1 - (y * ySize) - Ypadding, (x + 1) * xSize - Xpadding, 1.f - ((y + 1) * ySize) + Ypadding };
+			return noFlip;
 		}
 	}
 
 	void ParticleSystem::initParticleSystem(int size)
 	{
+		cleanup();
+
+
 		//simdize size
 		size += 4 - (size % 4);
-
-
 		this->size = size;
 
+
 	#pragma region allocations
-
-		delete[] posX;
-		delete[] posY;
-
-		delete[] directionX;
-		delete[] directionY;
-
-		delete[] rotation;
-
-		delete[] sizeXY;
-
-		delete[] dragY;
-		delete[] dragX;
-
-		delete[] duration;
-		delete[] durationTotal;
-
-		delete[] color;
-
-		delete[] rotationSpeed;
-		delete[] rotationDrag;
-
-		delete[] deathRattle;
-
-		delete[] textures;
-
-		delete[] tranzitionType;
-
-		delete[] thisParticleSettings;
-
-		delete[] emitTime;
-
-		delete[] emitParticle;
+	
 
 		int size32Aligned = size + (4 - (size % 4));
 
@@ -2035,7 +2012,6 @@ void main()
 
 	#pragma region apply movement
 
-			//todo simd
 
 	#if GL2D_SIMD == 0
 		for (int i = 0; i < size; i++)
@@ -2096,67 +2072,31 @@ void main()
 
 	}
 
-	//todo update !!!!
 	void ParticleSystem::cleanup()
 	{
-		if (posX)
-			delete[] posX;
+		delete[] posX;
+		delete[] posY;
+	
+		delete[] directionX;
+		delete[] directionY;
+		delete[] rotation;
 
-		if (posY)
-			delete[] posY;
+		delete[] sizeXY;
+	
+		delete[] dragY;
+		delete[] dragX;
+		delete[] duration;
+		delete[] durationTotal;
+		delete[] color;
+		delete[] rotationSpeed;
+		delete[] rotationDrag;
+		delete[] emitTime;
+		delete[] tranzitionType;
+		delete[] deathRattle;
+		delete[] thisParticleSettings;
+		delete[] emitParticle;
+		delete[] textures;
 
-
-		if (directionX)
-			delete[] directionX;
-
-		if (directionY)
-			delete[] directionY;
-
-		if (rotation)
-			delete[] rotation;
-
-		if (sizeXY)
-			delete[] sizeXY;
-
-
-		if (dragY)
-			delete[] dragY;
-
-		if (dragX)
-			delete[] dragX;
-
-		if (duration)
-			delete[] duration;
-
-		if (durationTotal)
-			delete[] durationTotal;
-
-		if (color)
-			delete[] color;
-
-		if (rotationSpeed)
-			delete[] rotationSpeed;
-
-		if (rotationDrag)
-			delete[] rotationDrag;
-
-		if (emitTime)
-			delete[] emitTime;
-
-		if (tranzitionType)
-			delete[] tranzitionType;
-
-		if (deathRattle)
-			delete[] deathRattle;
-
-		if (thisParticleSettings)
-			delete[] thisParticleSettings;
-
-		if (emitParticle)
-			delete[] emitParticle;
-
-		if (textures)
-			delete[] textures;
 
 		posX = 0;
 		posY = 0;
@@ -2178,7 +2118,10 @@ void main()
 		emitParticle = 0;
 		textures = 0;
 
+		size = 0;
 
+
+		fb.cleanup();
 	}
 
 	void ParticleSystem::emitParticleWave(ParticleSettings *ps, glm::vec2 pos)

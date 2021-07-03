@@ -325,7 +325,6 @@ namespace gl2d
 			const float spacing = 4, const float line_space = 3, bool showInCenter = 1, const Color4f ShadowColor = { 0.1,0.1,0.1,1 }
 		, const Color4f LightColor = {});
 
-		//todo color overloads
 		void renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = DefaultTextureCoords);
 		inline void renderRectangle(const Rect transforms, const Color4f colors, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = DefaultTextureCoords)
 		{
