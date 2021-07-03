@@ -142,6 +142,52 @@ namespace gl2d
 
 #pragma endregion
 
+
+	///////////////////// TextureAtlas /////////////////////
+#pragma region TextureAtlas
+
+	glm::vec4 computeTextureAtlas(int xCount, int yCount, int x, int y, bool flip = 0);
+
+	glm::vec4 computeTextureAtlasWithPadding(int mapXsize, int mapYsize, int xCount, int yCount, int x, int y, bool flip = 0);
+
+	struct TextureAtlas
+	{
+		TextureAtlas() {};
+		TextureAtlas(int x, int y) :xCount(x), yCount(y) {};
+
+		int xCount;
+		int yCount;
+
+		glm::vec4 get(int x, int y, bool flip = 0)
+		{
+			return computeTextureAtlas(xCount, yCount, x, y, flip);
+		}
+	};
+
+	struct TextureAtlasPadding
+	{
+		TextureAtlasPadding() {};
+
+		//count count size of the full texture(in pixels)
+		TextureAtlasPadding(int x, int y, int xSize, int ySize) :xCount(x), yCount(y)
+			, xSize(xSize), ySize(ySize)
+		{
+		};
+
+		int xCount;
+		int yCount;
+		int xSize;
+		int ySize;
+
+		glm::vec4 get(int x, int y, bool flip = 0)
+		{
+			return computeTextureAtlasWithPadding(xSize, ySize, xCount, yCount, x, y, flip);
+		}
+	};
+	// Get default internal texture (white texture)
+#pragma endregion
+
+
 	///////////////////// Font /////////////////////
 #pragma region Font
 #define Default_Font_Characters_Range_Begin cast(char, ' ')
@@ -331,48 +377,6 @@ namespace gl2d
 
 #pragma endregion
 
-	///////////////////// TextureAtlas /////////////////////
-#pragma region TextureAtlas
-
-	glm::vec4 computeTextureAtlas(int xCount, int yCount, int x, int y, bool flip = 0);
-
-	glm::vec4 computeTextureAtlasWithPadding(int mapXsize, int mapYsize, int xCount, int yCount, int x, int y, bool flip = 0);
-
-	struct TextureAtlas
-	{
-		TextureAtlas() {};
-		TextureAtlas(int x, int y):xCount(x), yCount(y) {};
-
-		int xCount;
-		int yCount;
-
-		glm::vec4 get(int x, int y, bool flip = 0)
-		{
-			return computeTextureAtlas(xCount, yCount, x, y, flip);
-		}
-	};
-
-	struct TextureAtlasPadding
-	{
-		TextureAtlasPadding() {};
-		//count count size size
-		TextureAtlasPadding(int x, int y, int xSize, int ySize):xCount(x), yCount(y)
-			, xSize(xSize), ySize(ySize)
-		{
-		};
-
-		int xCount;
-		int yCount;
-		int xSize;
-		int ySize;
-
-		glm::vec4 get(int x, int y, bool flip = 0)
-		{
-			return computeTextureAtlasWithPadding(xSize, ySize, xCount, yCount, x, y, flip);
-		}
-	};
-	// Get default internal texture (white texture)
-#pragma endregion
 
 	///////////////////// ParticleSysyem /////////////////////
 #pragma region ParticleSysyem

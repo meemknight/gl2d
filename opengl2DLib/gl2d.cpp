@@ -557,8 +557,6 @@ void main()
 	{
 		glEnable(GL_BLEND);
 		glEnable(GL_MULTISAMPLE);
-		//glEnable(GL_LINE_SMOOTH);
-		//glEnable(GL_POLYGON_SMOOTH);
 		//glEnable(GL_SAMPLE_SHADING);
 
 		glDisable(GL_DEPTH_TEST);
