@@ -1,7 +1,15 @@
 //////////////////////////////////////////////////
-//gl2d.cpp				1.2
+//gl2d.cpp				1.2.1
 //Copyright(c) 2020 Luta Vlad
 //https://github.com/meemknight/gl2d
+// 
+//notes: 
+// 1.2.1
+// fixed alpha in the particle system with the 
+// post process
+// 
+// 
+// 
 //////////////////////////////////////////////////
 
 
@@ -28,8 +36,8 @@
 
 
 #ifdef _MSC_VER
-	#pragma warning( push )
-	#pragma warning( disable : 4244 4305 4267 4996 4018)
+#pragma warning( push )
+#pragma warning( disable : 4244 4305 4267 4996 4018)
 #endif
 
 #undef max
@@ -42,7 +50,7 @@ namespace gl2d
 	static internal::ShaderProgram defaultParticleShader = {};
 	static Camera defaultCamera = cameraCreateDefault();
 
-	static const char *defaultVertexShader =
+	static const char* defaultVertexShader =
 		"#version 300 es\n"
 		"precision mediump float;\n"
 		"in vec2 quad_positions;\n"
@@ -57,7 +65,7 @@ namespace gl2d
 		"	v_texture = texturePositions;\n"
 		"}\n";
 
-	static const char *defaultFragmentShader =
+	static const char* defaultFragmentShader =
 		"#version 300 es\n"
 		"precision mediump float;\n"
 		"out vec4 color;\n"
@@ -69,7 +77,7 @@ namespace gl2d
 		"    color = v_color * texture(u_sampler, v_texture);\n"
 		"}\n";
 
-	static const char *defaultParticleVertexShader =
+	static const char* defaultParticleVertexShader =
 		"#version 300 es\n"
 		"precision mediump float;\n"
 		"in vec2 quad_positions;\n"
@@ -84,7 +92,7 @@ namespace gl2d
 		"	v_texture = texturePositions;\n"
 		"}\n";
 
-	static const char *defaultParcileFragmentShader =
+	static const char* defaultParcileFragmentShader =
 		R"(#version 300 es
 precision mediump float;
 out vec4 color;
@@ -120,7 +128,7 @@ void main()
 	if(color.a <0.01)discard;
 	//color.a = 1.f;
 
-	color.a = pow(color.a, 0.2); 
+	//color.a = pow(color.a, 0.2); 
 
 	color.rgb *= cFilter;
 	color.rgb = floor(color.rgb);
@@ -135,14 +143,14 @@ void main()
 
 #pragma endregion
 
-	static errorFuncType *errorFunc = defaultErrorFunc;
+	static errorFuncType* errorFunc = defaultErrorFunc;
 
-	void defaultErrorFunc(const char *msg)
+	void defaultErrorFunc(const char* msg)
 	{
 
 	}
 
-	errorFuncType *setErrorFuncCallback(errorFuncType *newFunc)
+	errorFuncType* setErrorFuncCallback(errorFuncType* newFunc)
 	{
 		auto a = errorFunc;
 		errorFunc = newFunc;
@@ -185,7 +193,7 @@ void main()
 			return glm::vec4{ quad.s0, quad.t0, quad.s1, quad.t1 };
 		}
 
-		GLuint loadShader(const char *source, GLenum shaderType)
+		GLuint loadShader(const char* source, GLenum shaderType)
 		{
 			GLuint id = glCreateShader(shaderType);
 
@@ -197,7 +205,7 @@ void main()
 
 			if (!result)
 			{
-				char *message = 0;
+				char* message = 0;
 				int   l = 0;
 
 				glGetShaderiv(id, GL_INFO_LOG_LENGTH, &l);
@@ -217,7 +225,7 @@ void main()
 			return id;
 		}
 
-		internal::ShaderProgram createShaderProgram(const char *vertex, const char *fragment)
+		internal::ShaderProgram createShaderProgram(const char* vertex, const char* fragment)
 		{
 			internal::ShaderProgram shader = { 0 };
 
@@ -242,7 +250,7 @@ void main()
 
 			if (info != GL_TRUE)
 			{
-				char *message = 0;
+				char* message = 0;
 				int   l = 0;
 
 				glGetProgramiv(shader.id, GL_INFO_LOG_LENGTH, &l);
@@ -264,7 +272,7 @@ void main()
 		}
 	}
 
-	typedef BOOL(WINAPI *PFNWGLSWAPINTERVALEXTPROC) (int interval);
+	typedef BOOL(WINAPI* PFNWGLSWAPINTERVALEXTPROC) (int interval);
 
 	struct
 	{
@@ -291,7 +299,7 @@ void main()
 
 #ifdef _WIN32
 		//add linux suport
-		extensions.wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC) wglGetProcAddress("wglSwapIntervalEXT");
+		extensions.wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
 #endif
 
 		defaultShader = internal::createShaderProgram(defaultVertexShader, defaultFragmentShader);
@@ -340,7 +348,7 @@ void main()
 	///////////////////// Texture /////////////////////
 #pragma region Texture
 
-	void convertFromRetardedCoordonates(int tSizeX, int tSizeY, int x, int y, int sizeX, int sizeY, int s1, int s2, int s3, int s4, Texture_Coords *outer, Texture_Coords *inner)
+	void convertFromRetardedCoordonates(int tSizeX, int tSizeY, int x, int y, int sizeX, int sizeY, int s1, int s2, int s3, int s4, Texture_Coords* outer, Texture_Coords* inner)
 	{
 		float newX = (float)tSizeX / (float)x;
 		float newY = (float)tSizeY / (float)y;
@@ -372,20 +380,20 @@ void main()
 	///////////////////// Font /////////////////////
 #pragma region Font
 
-	void Font::createFromTTF(const unsigned char *ttf_data, const size_t ttf_data_size)
+	void Font::createFromTTF(const unsigned char* ttf_data, const size_t ttf_data_size)
 	{
 
 		size.x = 2000,
-		size.y = 2000,
-		max_height = 0,
-		packedCharsBufferSize = sizeof(stbtt_packedchar) * ('~' - ' ');
+			size.y = 2000,
+			max_height = 0,
+			packedCharsBufferSize = sizeof(stbtt_packedchar) * ('~' - ' ');
 
 		//STB TrueType will give us a one channel buffer of the font that we then convert to RGBA for OpenGL
 		const size_t fontMonochromeBufferSize = size.x * size.y;
 		const size_t fontRgbaBufferSize = size.x * size.y * 4;
 
-		unsigned char *fontMonochromeBuffer = new unsigned char[fontMonochromeBufferSize];
-		unsigned char *fontRgbaBuffer = new unsigned char[fontRgbaBufferSize];
+		unsigned char* fontMonochromeBuffer = new unsigned char[fontMonochromeBufferSize];
+		unsigned char* fontRgbaBuffer = new unsigned char[fontRgbaBufferSize];
 
 		packedCharsBuffer = new stbtt_packedchar[packedCharsBufferSize];
 
@@ -439,7 +447,7 @@ void main()
 		}
 	}
 
-	void Font::createFromFile(const char *file)
+	void Font::createFromFile(const char* file)
 	{
 		std::ifstream fileFont(file, std::ios::binary);
 
@@ -456,8 +464,8 @@ void main()
 		fileFont.seekg(0, std::ios::end);
 		fileSize = (int)fileFont.tellg();
 		fileFont.seekg(0, std::ios::beg);
-		unsigned char *fileData = new unsigned char[fileSize];
-		fileFont.read((char *)fileData, fileSize);
+		unsigned char* fileData = new unsigned char[fileSize];
+		fileFont.read((char*)fileData, fileSize);
 		fileFont.close();
 
 		createFromTTF(fileData, fileSize);
@@ -496,7 +504,6 @@ void main()
 		{
 			return;
 		}
-
 
 		glViewport(0, 0, windowW, windowH);
 
@@ -981,20 +988,20 @@ void main()
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[Renderer2DBufferType::quadPositions]);
 		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[Renderer2DBufferType::quadColors]);
 		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void *)0);
+		glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[Renderer2DBufferType::texturePositions]);
 		glEnableVertexAttribArray(2);
-		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
+		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
 		glBindVertexArray(0);
 	}
 
-	glm::vec4 Renderer2D::toScreen(const glm::vec4 &transform)
+	glm::vec4 Renderer2D::toScreen(const glm::vec4& transform)
 	{
 		//We need to flip texture_transforms.y
 		const float transformsY = transform.y * -1;
@@ -1034,7 +1041,7 @@ void main()
 		return glm::vec4(v1.x, v1.y, v3.x, v3.y);
 	}
 
-	glm::vec2 Renderer2D::getTextSize(const char *text, const Font font,
+	glm::vec2 Renderer2D::getTextSize(const char* text, const Font font,
 		const float size, const float spacing, const float line_space)
 	{
 		glm::vec2 position = {};
@@ -1107,7 +1114,7 @@ void main()
 
 	}
 
-	void Renderer2D::renderText(glm::vec2 position, const char *text, const Font font,
+	void Renderer2D::renderText(glm::vec2 position, const char* text, const Font font,
 		const Color4f color, const float size, const float spacing, const float line_space, bool showInCenter,
 		const Color4f ShadowColor
 		, const Color4f LightColor
@@ -1282,7 +1289,7 @@ void main()
 		return s;
 	}
 
-	void Texture::createFromBuffer(const char *image_data, const int width, const int height)
+	void Texture::createFromBuffer(const char* image_data, const int width, const int height)
 	{
 		GLuint id = 0;
 
@@ -1307,7 +1314,7 @@ void main()
 		this->id = id;
 	}
 
-	void Texture::create1PxSquare(const char *b)
+	void Texture::create1PxSquare(const char* b)
 	{
 		if (b == nullptr)
 		{
@@ -1319,7 +1326,7 @@ void main()
 				0xff
 			};
 
-			createFromBuffer((char *)buff, 1, 1);
+			createFromBuffer((char*)buff, 1, 1);
 		}
 		else
 		{
@@ -1328,7 +1335,7 @@ void main()
 
 	}
 
-	void Texture::createFromFileData(const unsigned char *image_file_data, const size_t image_file_size)
+	void Texture::createFromFileData(const unsigned char* image_file_data, const size_t image_file_size)
 	{
 		stbi_set_flip_vertically_on_load(true);
 
@@ -1336,15 +1343,15 @@ void main()
 		int height = 0;
 		int channels = 0;
 
-		const unsigned char *decodedImage = stbi_load_from_memory(image_file_data, (int)image_file_size, &width, &height, &channels, 4);
+		const unsigned char* decodedImage = stbi_load_from_memory(image_file_data, (int)image_file_size, &width, &height, &channels, 4);
 
-		createFromBuffer((const char *)decodedImage, width, height);
+		createFromBuffer((const char*)decodedImage, width, height);
 
 		//Replace stbi allocators
-		free((void *)decodedImage);
+		free((void*)decodedImage);
 	}
 
-	void Texture::createFromFileDataWithPixelPadding(const unsigned char *image_file_data, const size_t image_file_size, int blockSize)
+	void Texture::createFromFileDataWithPixelPadding(const unsigned char* image_file_data, const size_t image_file_size, int blockSize)
 	{
 		stbi_set_flip_vertically_on_load(true);
 
@@ -1352,7 +1359,7 @@ void main()
 		int height = 0;
 		int channels = 0;
 
-		const unsigned char *decodedImage = stbi_load_from_memory(image_file_data, (int)image_file_size, &width, &height, &channels, 4);
+		const unsigned char* decodedImage = stbi_load_from_memory(image_file_data, (int)image_file_size, &width, &height, &channels, 4);
 
 		/*
 		int newW = width + (width / blockSize);
@@ -1408,7 +1415,7 @@ void main()
 		};
 
 
-		unsigned char *newData = new unsigned char[newW * newH * 4]{};
+		unsigned char* newData = new unsigned char[newW * newH * 4]{};
 
 		auto getNew = [newData, newW](int x, int y, int c)
 		{
@@ -1436,11 +1443,11 @@ void main()
 					yNo ||
 
 					((
-					x == 0 || x == newW - 1
-					|| (x % (blockSize + 2)) == 0 ||
-					((x + 1) % (blockSize + 2)) == 0
-					)
-					)
+						x == 0 || x == newW - 1
+						|| (x % (blockSize + 2)) == 0 ||
+						((x + 1) % (blockSize + 2)) == 0
+						)
+						)
 
 					)
 				{
@@ -1526,14 +1533,14 @@ void main()
 		}
 
 
-		createFromBuffer((const char *)newData, newW, newH);
+		createFromBuffer((const char*)newData, newW, newH);
 
 		//Replace stbi allocators
-		free((void *)decodedImage);
+		free((void*)decodedImage);
 		delete[] newData;
 	}
 
-	void Texture::loadFromFile(const char *fileName)
+	void Texture::loadFromFile(const char* fileName)
 	{
 		std::ifstream file(fileName, std::ios::binary);
 
@@ -1550,8 +1557,8 @@ void main()
 		file.seekg(0, std::ios::end);
 		fileSize = (int)file.tellg();
 		file.seekg(0, std::ios::beg);
-		unsigned char *fileData = new unsigned char[fileSize];
-		file.read((char *)fileData, fileSize);
+		unsigned char* fileData = new unsigned char[fileSize];
+		file.read((char*)fileData, fileSize);
 		file.close();
 
 		createFromFileData(fileData, fileSize);
@@ -1560,7 +1567,7 @@ void main()
 
 	}
 
-	void Texture::loadFromFileWithPixelPadding(const char *fileName, int blockSize)
+	void Texture::loadFromFileWithPixelPadding(const char* fileName, int blockSize)
 	{
 		std::ifstream file(fileName, std::ios::binary);
 
@@ -1577,8 +1584,8 @@ void main()
 		file.seekg(0, std::ios::end);
 		fileSize = (int)file.tellg();
 		file.seekg(0, std::ios::beg);
-		unsigned char *fileData = new unsigned char[fileSize];
-		file.read((char *)fileData, fileSize);
+		unsigned char* fileData = new unsigned char[fileSize];
+		file.read((char*)fileData, fileSize);
 		file.close();
 
 		createFromFileDataWithPixelPadding(fileData, fileSize, blockSize);
@@ -1646,7 +1653,7 @@ void main()
 
 	}
 
-	glm::vec2 Camera::convertPoint(const glm::vec2 &p, float windowW, float windowH)
+	glm::vec2 Camera::convertPoint(const glm::vec2& p, float windowW, float windowH)
 	{
 		glm::vec2 r = p;
 
@@ -1702,7 +1709,7 @@ void main()
 		glGenTextures(1, &texture.id);
 		glBindTexture(GL_TEXTURE_2D, texture.id);
 
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -1737,11 +1744,17 @@ void main()
 
 	void FrameBuffer::cleanup()
 	{
-		glDeleteFramebuffers(1, &fbo);
-		fbo = 0;
+		if (fbo)
+		{
+			glDeleteFramebuffers(1, &fbo);
+			fbo = 0;
+		}
 
-		glDeleteTextures(1, &texture.id);
-		texture = 0;
+		if (texture.id)
+		{
+			glDeleteTextures(1, &texture.id);
+			texture = 0;
+		}
 
 		//glDeleteTextures(1, &depthtTexture);
 		//depthtTexture = 0;
@@ -1807,8 +1820,8 @@ void main()
 		this->size = size;
 
 
-	#pragma region allocations
-	
+#pragma region allocations
+
 
 		int size32Aligned = size + (4 - (size % 4));
 
@@ -1832,7 +1845,7 @@ void main()
 		textures = new gl2d::Texture * [size32Aligned];
 		emitTime = new float[size32Aligned];
 
-	#pragma endregion
+#pragma endregion
 
 		for (int i = 0; i < size; i++)
 		{
@@ -1848,30 +1861,34 @@ void main()
 
 	}
 
-	#if defined(_MSC_VER)
-	 /* Microsoft C/C++-compatible compiler */
-	#include <intrin.h>
-	#elif defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
-		 /* GCC-compatible compiler, targeting x86/x86-64 */
-	#include <x86intrin.h>
-	#elif defined(__GNUC__) && defined(__ARM_NEON__)
-		 /* GCC-compatible compiler, targeting ARM with NEON */
-	#include <arm_neon.h>
-	#elif defined(__GNUC__) && defined(__IWMMXT__)
-		 /* GCC-compatible compiler, targeting ARM with WMMX */
-	#include <mmintrin.h>
-	#elif (defined(__GNUC__) || defined(__xlC__)) && (defined(__VEC__) || defined(__ALTIVEC__))
-		 /* XLC or GCC-compatible compiler, targeting PowerPC with VMX/VSX */
-	#include <altivec.h>
-	#elif defined(__GNUC__) && defined(__SPE__)
-		 /* GCC-compatible compiler, targeting PowerPC with SPE */
-	#include <spe.h>
-	#endif
+#if GL2D_SIMD != 0
+
+#if defined(_MSC_VER)
+	/* Microsoft C/C++-compatible compiler */
+#include <intrin.h>
+#elif defined(__GNUC__) && (defined(__x86_64__) || defined(__i386__))
+	/* GCC-compatible compiler, targeting x86/x86-64 */
+#include <x86intrin.h>
+#elif defined(__GNUC__) && defined(__ARM_NEON__)
+	/* GCC-compatible compiler, targeting ARM with NEON */
+#include <arm_neon.h>
+#elif defined(__GNUC__) && defined(__IWMMXT__)
+	/* GCC-compatible compiler, targeting ARM with WMMX */
+#include <mmintrin.h>
+#elif (defined(__GNUC__) || defined(__xlC__)) && (defined(__VEC__) || defined(__ALTIVEC__))
+	/* XLC or GCC-compatible compiler, targeting PowerPC with VMX/VSX */
+#include <altivec.h>
+#elif defined(__GNUC__) && defined(__SPE__)
+	/* GCC-compatible compiler, targeting PowerPC with SPE */
+#include <spe.h>
+#endif
+
+#endif
 
 	void ParticleSystem::applyMovement(float deltaTime)
 	{
 
-	#pragma region newParticles
+#pragma region newParticles
 
 		int recreatedParticlesThisFrame = 0;
 
@@ -1910,7 +1927,7 @@ void main()
 		//}
 
 
-	#pragma endregion
+#pragma endregion
 
 
 		for (int i = 0; i < size; i++)
@@ -1950,9 +1967,9 @@ void main()
 
 		__m128 _deltaTime = _mm_set1_ps(deltaTime);
 
-	#pragma region applyDrag
+#pragma region applyDrag
 
-	#if GL2D_SIMD == 0
+#if GL2D_SIMD == 0
 		for (int i = 0; i < size; i++)
 		{
 			//if (duration[i] > 0)
@@ -1972,14 +1989,14 @@ void main()
 			//if (duration[i] > 0)
 			rotationSpeed[i] += deltaTime * rotationDrag[i];
 		}
-	#else
+#else
 
 		for (int i = 0; i < size; i += 4)
 		{
 			//directionX[i] += deltaTime * dragX[i];
 
-			__m128 *dir = (__m128 *) & (directionX[i]);
-			__m128 *drag = (__m128 *) & (dragX[i]);
+			__m128* dir = (__m128*) & (directionX[i]);
+			__m128* drag = (__m128*) & (dragX[i]);
 
 			*dir = _mm_fmadd_ps(_deltaTime, *drag, *dir);
 		}
@@ -1988,8 +2005,8 @@ void main()
 		{
 			//directionY[i] += deltaTime * dragY[i];
 
-			__m128 *dir = (__m128 *) & (directionY[i]);
-			__m128 *drag = (__m128 *) & (dragY[i]);
+			__m128* dir = (__m128*) & (directionY[i]);
+			__m128* drag = (__m128*) & (dragY[i]);
 
 			*dir = _mm_fmadd_ps(_deltaTime, *drag, *dir);
 		}
@@ -1998,22 +2015,22 @@ void main()
 		{
 			//rotationSpeed[i] += deltaTime * rotationDrag[i];
 
-			__m128 *dir = (__m128 *) & (rotationSpeed[i]);
-			__m128 *drag = (__m128 *) & (rotationDrag[i]);
+			__m128* dir = (__m128*) & (rotationSpeed[i]);
+			__m128* drag = (__m128*) & (rotationDrag[i]);
 
 			*dir = _mm_fmadd_ps(_deltaTime, *drag, *dir);
 		}
-	#endif
+#endif
 
 
 
-	#pragma endregion
+#pragma endregion
 
 
-	#pragma region apply movement
+#pragma region apply movement
 
 
-	#if GL2D_SIMD == 0
+#if GL2D_SIMD == 0
 		for (int i = 0; i < size; i++)
 		{
 			//if (duration[i] > 0)
@@ -2035,12 +2052,12 @@ void main()
 			rotation[i] += deltaTime * rotationSpeed[i];
 
 		}
-	#else 
+#else 
 		for (int i = 0; i < size; i += 4)
 		{
 			//posX[i] += deltaTime * directionX[i];
-			__m128 *dir = (__m128 *) & (posX[i]);
-			__m128 *drag = (__m128 *) & (directionX[i]);
+			__m128* dir = (__m128*) & (posX[i]);
+			__m128* drag = (__m128*) & (directionX[i]);
 
 			*dir = _mm_fmadd_ps(_deltaTime, *drag, *dir);
 		}
@@ -2049,8 +2066,8 @@ void main()
 		for (int i = 0; i < size; i++)
 		{
 			//posY[i] += deltaTime * directionY[i];
-			__m128 *dir = (__m128 *) & (posY[i]);
-			__m128 *drag = (__m128 *) & (directionY[i]);
+			__m128* dir = (__m128*) & (posY[i]);
+			__m128* drag = (__m128*) & (directionY[i]);
 
 			*dir = _mm_fmadd_ps(_deltaTime, *drag, *dir);
 		}
@@ -2058,15 +2075,15 @@ void main()
 		for (int i = 0; i < size; i++)
 		{
 			//rotation[i] += deltaTime * rotationSpeed[i];
-			__m128 *dir = (__m128 *) & (rotation[i]);
-			__m128 *drag = (__m128 *) & (rotationSpeed[i]);
+			__m128* dir = (__m128*) & (rotation[i]);
+			__m128* drag = (__m128*) & (rotationSpeed[i]);
 
 			*dir = _mm_fmadd_ps(_deltaTime, *drag, *dir);
 		}
 
-	#endif
+#endif
 
-	#pragma endregion
+#pragma endregion
 
 
 
@@ -2076,13 +2093,13 @@ void main()
 	{
 		delete[] posX;
 		delete[] posY;
-	
+
 		delete[] directionX;
 		delete[] directionY;
 		delete[] rotation;
 
 		delete[] sizeXY;
-	
+
 		delete[] dragY;
 		delete[] dragX;
 		delete[] duration;
@@ -2124,7 +2141,7 @@ void main()
 		fb.cleanup();
 	}
 
-	void ParticleSystem::emitParticleWave(ParticleSettings *ps, glm::vec2 pos)
+	void ParticleSystem::emitParticleWave(ParticleSettings* ps, glm::vec2 pos)
 	{
 		int recreatedParticlesThisFrame = 0;
 
@@ -2170,13 +2187,13 @@ void main()
 
 	}
 
-	float merge(float a, float b, float perc)
+	float interpolate(float a, float b, float perc)
 	{
 		return a * perc + b * (1 - perc);
 
 	}
 
-	void ParticleSystem::draw(Renderer2D &r)
+	void ParticleSystem::draw(Renderer2D& r)
 	{
 
 		unsigned int w = r.windowW;
@@ -2197,6 +2214,7 @@ void main()
 
 			r.updateWindowMetrics(w / pixelateFactor, h / pixelateFactor);
 
+			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
 		}
 
@@ -2209,31 +2227,31 @@ void main()
 
 			switch (this->tranzitionType[i])
 			{
-				case gl2d::TRANZITION_TYPES::none:
+			case gl2d::TRANZITION_TYPES::none:
 				lifePerc = 1;
 				break;
-				case gl2d::TRANZITION_TYPES::linear:
+			case gl2d::TRANZITION_TYPES::linear:
 
 				break;
-				case gl2d::TRANZITION_TYPES::curbe:
+			case gl2d::TRANZITION_TYPES::curbe:
 				lifePerc *= lifePerc;
 				break;
-				case gl2d::TRANZITION_TYPES::abruptCurbe:
+			case gl2d::TRANZITION_TYPES::abruptCurbe:
 				lifePerc *= lifePerc * lifePerc;
 				break;
-				case gl2d::TRANZITION_TYPES::wave:
+			case gl2d::TRANZITION_TYPES::wave:
 				lifePerc = (std::cos(lifePerc * 5 * 3.141592) * lifePerc + lifePerc) / 2.f;
 				break;
-				case gl2d::TRANZITION_TYPES::wave2:
+			case gl2d::TRANZITION_TYPES::wave2:
 				lifePerc = std::cos(lifePerc * 5 * 3.141592) * std::sqrt(lifePerc) * 0.9f + 0.1f;
 				break;
-				case gl2d::TRANZITION_TYPES::delay:
+			case gl2d::TRANZITION_TYPES::delay:
 				lifePerc = (std::cos(lifePerc * 3.141592 * 2) * std::sin(lifePerc * lifePerc)) / 2.f;
 				break;
-				case gl2d::TRANZITION_TYPES::delay2:
+			case gl2d::TRANZITION_TYPES::delay2:
 				lifePerc = (std::atan(2 * lifePerc * lifePerc * lifePerc * 3.141592)) / 2.f;
 				break;
-				default:
+			default:
 				break;
 			}
 
@@ -2244,13 +2262,13 @@ void main()
 			{
 				pos.x = posX[i];
 				pos.y = posY[i];
-				pos.z = merge(sizeXY[i], thisParticleSettings[i]->createEndApearence.size.x, lifePerc);
+				pos.z = interpolate(sizeXY[i], thisParticleSettings[i]->createEndApearence.size.x, lifePerc);
 				pos.w = pos.z;
 
-				c.x = merge(color[i].x, thisParticleSettings[i]->createEndApearence.color1.x, lifePerc);
-				c.y = merge(color[i].y, thisParticleSettings[i]->createEndApearence.color1.y, lifePerc);
-				c.z = merge(color[i].z, thisParticleSettings[i]->createEndApearence.color1.z, lifePerc);
-				c.w = merge(color[i].w, thisParticleSettings[i]->createEndApearence.color1.w, lifePerc);
+				c.x = interpolate(color[i].x, thisParticleSettings[i]->createEndApearence.color1.x, lifePerc);
+				c.y = interpolate(color[i].y, thisParticleSettings[i]->createEndApearence.color1.y, lifePerc);
+				c.z = interpolate(color[i].z, thisParticleSettings[i]->createEndApearence.color1.z, lifePerc);
+				c.w = interpolate(color[i].w, thisParticleSettings[i]->createEndApearence.color1.w, lifePerc);
 			}
 			else
 			{
@@ -2355,5 +2373,5 @@ void main()
 }
 
 #ifdef _MSC_VER
-	#pragma warning( pop )
+#pragma warning( pop )
 #endif
