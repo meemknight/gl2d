@@ -386,7 +386,7 @@ void main()
 		size.x = 2000,
 			size.y = 2000,
 			max_height = 0,
-			packedCharsBufferSize = sizeof(stbtt_packedchar) * ('~' - ' ');
+			packedCharsBufferSize = ('~' - ' ');
 
 		//STB TrueType will give us a one channel buffer of the font that we then convert to RGBA for OpenGL
 		const size_t fontMonochromeBufferSize = size.x * size.y;
@@ -398,7 +398,7 @@ void main()
 		packedCharsBuffer = new stbtt_packedchar[packedCharsBufferSize];
 
 		stbtt_pack_context stbtt_context;
-		stbtt_PackBegin(&stbtt_context, fontMonochromeBuffer, size.x, size.y, 0, 1, NULL);
+		stbtt_PackBegin(&stbtt_context, fontMonochromeBuffer, size.x, size.y, 0, 2, NULL);
 		stbtt_PackSetOversampling(&stbtt_context, 2, 2);
 		stbtt_PackFontRange(&stbtt_context, ttf_data, 0, 65, ' ', '~' - ' ', packedCharsBuffer);
 		stbtt_PackEnd(&stbtt_context);
@@ -574,7 +574,8 @@ void main()
 		glDisable(GL_DEPTH_TEST);
 
 		glBlendEquation(GL_FUNC_ADD);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
 	}
 
 	///////////////////// Renderer2D - render ///////////////////// 
@@ -2011,7 +2012,7 @@ void main()
 			*dir = _mm_fmadd_ps(_deltaTime, *drag, *dir);
 		}
 
-		for (int i = 0; i < size; i++)
+		for (int i = 0; i < size; i+= 4)
 		{
 			//rotationSpeed[i] += deltaTime * rotationDrag[i];
 
@@ -2213,8 +2214,6 @@ void main()
 			}
 
 			r.updateWindowMetrics(w / pixelateFactor, h / pixelateFactor);
-
-			glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
 		}
 
