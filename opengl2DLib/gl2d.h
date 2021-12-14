@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-//gl2d.h				1.2.1
+//gl2d.h				1.2.2
 //Copyright(c) 2020 Luta Vlad
 //https://github.com/meemknight/gl2d
 //
@@ -36,7 +36,6 @@
 #else
 #define GL2D_SIMD 0
 #endif
-
 
 
 #include <GL/glew.h>
@@ -155,8 +154,8 @@ namespace gl2d
 		TextureAtlas() {};
 		TextureAtlas(int x, int y) :xCount(x), yCount(y) {};
 
-		int xCount;
-		int yCount;
+		int xCount = 0;
+		int yCount = 0;
 
 		glm::vec4 get(int x, int y, bool flip = 0)
 		{
@@ -174,10 +173,10 @@ namespace gl2d
 		{
 		};
 
-		int xCount;
-		int yCount;
-		int xSize;
-		int ySize;
+		int xCount = 0;
+		int yCount = 0;
+		int xSize = 0;
+		int ySize = 0;
 
 		glm::vec4 get(int x, int y, bool flip = 0)
 		{
@@ -199,11 +198,11 @@ namespace gl2d
 	typedef struct Font Font;
 	struct Font
 	{
-		Texture           texture;
-		glm::ivec2        size;
-		stbtt_packedchar* packedCharsBuffer;
-		int               packedCharsBufferSize;
-		float             max_height;
+		Texture           texture = {};
+		glm::ivec2        size = {};
+		stbtt_packedchar* packedCharsBuffer = 0;
+		int               packedCharsBufferSize = 0;
+		float             max_height = 0.f;
 
 		Font() {}
 		explicit Font(const char* file) { createFromFile(file); }
@@ -218,22 +217,20 @@ namespace gl2d
 #pragma region Camera
 
 	struct Camera;
-	Camera cameraCreateDefault();
 
 	struct Camera
 	{
-		glm::vec2  position;
-		//glm::vec2  offset;   // Camera offset (displacement from target)
-		glm::vec2  target;   // Camera target (rotation and zoom origin)
-		float rotation; // Camera rotation in degrees
-		float zoom;     // Camera zoom (scaling), should be 1.0f by default
+		glm::vec2  position = {};
+		glm::vec2  target = {};   // Camera target (rotation and zoom origin)
+		float rotation = 0.f; // Camera rotation in degrees
+		float zoom = 1.0;     // Camera zoom (scaling), should be 1.0f by default
 
-		void setDefault() { *this = cameraCreateDefault(); }
+		void setDefault() { *this = Camera{}; }
 		glm::mat3 getMatrix();
 
 		void follow(glm::vec2 pos, float speed, float max, float w, float h);
 
-		glm::vec2 convertPoint(const glm::vec2& p, float windowW, float windowH);
+		glm::vec2 convertPoint(const glm::vec2& p, float windowW, float windowH); //todo move to internal
 	};
 
 
@@ -247,8 +244,8 @@ namespace gl2d
 
 	struct FrameBuffer
 	{
-		unsigned int fbo;
-		Texture texture;
+		unsigned int fbo = 0;
+		Texture texture = {};
 
 		void create(unsigned int w, unsigned int h);
 		void resize(unsigned int w, unsigned int h);
@@ -280,10 +277,9 @@ namespace gl2d
 
 		void create();
 
-		GLuint buffers[Renderer2DBufferType::bufferSize];
-		GLuint vao;
+		GLuint buffers[Renderer2DBufferType::bufferSize] = {};
+		GLuint vao = {};
 
-		//Note: Just for testing purposes
 		//4 elements each component
 		glm::vec2 spritePositions[Renderer2D_Max_Buffer_Capacity];
 		glm::vec4 spriteColors[Renderer2D_Max_Buffer_Capacity];
@@ -295,10 +291,10 @@ namespace gl2d
 		int texturePositionsCount = 0;
 		int spriteTexturesCount = 0;
 
-		Texture white1pxSquareTexture;
+		Texture white1pxSquareTexture = {};
 
-		internal::ShaderProgram currentShader;
-		Camera currentCamera;
+		internal::ShaderProgram currentShader = {};
+		Camera currentCamera = {};
 
 		//window metrics, should be up to date at all times
 		int windowW = 0;
@@ -321,6 +317,7 @@ namespace gl2d
 
 		// The origin will be the bottom left corner since it represents the line for the text to be drawn
 		//Pacing and lineSpace are influenced by size
+		//todo the function should returns the size of the text drawn also refactor
 		void renderText(glm::vec2 position, const char* text, const Font font, const Color4f color, const float size = 1.5f,
 			const float spacing = 4, const float line_space = 3, bool showInCenter = 1, const Color4f ShadowColor = { 0.1,0.1,0.1,1 }
 		, const Color4f LightColor = {});
@@ -382,9 +379,9 @@ namespace gl2d
 
 	struct ParticleApearence
 	{
-		glm::vec2 size;
-		glm::vec4 color1;
-		glm::vec4 color2;
+		glm::vec2 size = {};
+		glm::vec4 color1 = {};
+		glm::vec4 color2 = {};
 	};
 
 	enum TRANZITION_TYPES
@@ -482,7 +479,7 @@ namespace gl2d
 
 		std::mt19937 random{ std::random_device{}() };
 
-		gl2d::FrameBuffer fb;
+		gl2d::FrameBuffer fb = {};
 
 		float rand(glm::vec2 v);
 	};

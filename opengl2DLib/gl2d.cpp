@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-//gl2d.cpp				1.2.1
+//gl2d.cpp				1.2.2
 //Copyright(c) 2020 Luta Vlad
 //https://github.com/meemknight/gl2d
 // 
@@ -8,7 +8,9 @@
 // fixed alpha in the particle system with the 
 // post process
 // 
-// 
+// 1.2.2
+// added default values to structs
+// added some more error reporting
 // 
 //////////////////////////////////////////////////
 
@@ -33,6 +35,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <iostream>
 
 
 #ifdef _MSC_VER
@@ -48,7 +51,7 @@ namespace gl2d
 
 	static internal::ShaderProgram defaultShader = {};
 	static internal::ShaderProgram defaultParticleShader = {};
-	static Camera defaultCamera = cameraCreateDefault();
+	static Camera defaultCamera{};
 
 	static const char* defaultVertexShader =
 		"#version 300 es\n"
@@ -147,7 +150,7 @@ void main()
 
 	void defaultErrorFunc(const char* msg)
 	{
-
+		std::cerr << "gl2d error: " << msg << "\n";
 	}
 
 	errorFuncType* setErrorFuncCallback(errorFuncType* newFunc)
@@ -384,9 +387,9 @@ void main()
 	{
 
 		size.x = 2000,
-			size.y = 2000,
-			max_height = 0,
-			packedCharsBufferSize = ('~' - ' ');
+		size.y = 2000,
+		max_height = 0,
+		packedCharsBufferSize = ('~' - ' ');
 
 		//STB TrueType will give us a one channel buffer of the font that we then convert to RGBA for OpenGL
 		const size_t fontMonochromeBufferSize = size.x * size.y;
@@ -478,12 +481,7 @@ void main()
 
 	///////////////////// Camera /////////////////////
 #pragma region Camera
-	Camera cameraCreateDefault()
-	{
-		Camera c = {};
-		c.zoom = 1;
-		return c;
-	}
+
 #pragma endregion
 
 	///////////////////// Renderer2D /////////////////////
@@ -491,6 +489,16 @@ void main()
 
 	void gl2d::Renderer2D::flush()
 	{
+		if (!hasInitialized) 
+		{
+			errorFunc("Library not initialized. Have you forgotten to call gl2d::init() ?");
+		}
+
+		if (!vao)
+		{
+			errorFunc("Renderer not initialized. Have you forgotten to call gl2d::Renderer2D::create() ?");
+		}
+
 		if (windowH == 0 || windowW == 0)
 		{
 			spritePositionsCount = 0;
@@ -557,6 +565,11 @@ void main()
 
 	void Renderer2D::flushFBO(FrameBuffer frameBuffer)
 	{
+		if (frameBuffer.fbo == 0) 
+		{
+			errorFunc("Framebuffer not initialized");
+		}
+
 		glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer.fbo);
 		glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -590,6 +603,14 @@ void main()
 
 	void gl2d::Renderer2D::renderRectangleAbsRotation(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords)
 	{
+		Texture textureCopy = texture;
+
+		if (textureCopy.id == 0)
+		{
+			errorFunc("Invalid texture");
+			textureCopy = this->white1pxSquareTexture;
+		}
+
 		//We need to flip texture_transforms.y
 		const float transformsY = transforms.y * -1;
 
@@ -676,7 +697,7 @@ void main()
 		texturePositions[texturePositionsCount++] = glm::vec2{ textureCoords.z, textureCoords.w }; //3
 		texturePositions[texturePositionsCount++] = glm::vec2{ textureCoords.z, textureCoords.y }; //4
 
-		spriteTextures[spriteTexturesCount++] = texture;
+		spriteTextures[spriteTexturesCount++] = textureCopy;
 	}
 
 	void Renderer2D::renderRectangle(const Rect transforms, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords)
@@ -973,6 +994,11 @@ void main()
 
 	void Renderer2D::create()
 	{
+		if (!hasInitialized)
+		{
+			errorFunc("Library not initialized. Have you forgotten to call gl2d::init() ?");
+		}
+
 		white1pxSquareTexture.create1PxSquare();
 
 		spritePositionsCount = 0;
@@ -1045,6 +1071,12 @@ void main()
 	glm::vec2 Renderer2D::getTextSize(const char* text, const Font font,
 		const float size, const float spacing, const float line_space)
 	{
+		if (font.texture.id == 0)
+		{
+			errorFunc("Missing font");
+			return {};
+		}
+
 		glm::vec2 position = {};
 
 		const int text_length = (int)strlen(text);
@@ -1121,6 +1153,12 @@ void main()
 		, const Color4f LightColor
 	)
 	{
+		if (font.texture.id == 0)
+		{
+			errorFunc("Missing font");
+			return;
+		}
+
 		const int text_length = (int)strlen(text);
 		Rect rectangle;
 		rectangle.x = position.x;
@@ -1255,7 +1293,6 @@ void main()
 				rectangle.x += rectangle.z + spacing * size;
 			}
 		}
-
 	}
 
 	void Renderer2D::clearScreen(const Color4f color)
@@ -1882,6 +1919,9 @@ void main()
 #elif defined(__GNUC__) && defined(__SPE__)
 	/* GCC-compatible compiler, targeting PowerPC with SPE */
 #include <spe.h>
+#elif
+#undef GL2D_SIMD
+#define GL2D_SIMD 0
 #endif
 
 #endif
