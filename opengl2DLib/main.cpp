@@ -41,7 +41,6 @@ int main()
 	long lastTime = GetTickCount();
 
 	std::string text = {};
-
 	while (!glfwWindowShouldClose(wind))
 	{
 

@@ -13,6 +13,7 @@
 // added some more error reporting
 // added option to change gl version and 
 //  shader presision
+// vsynk independend of gl loader
 // 
 //////////////////////////////////////////////////
 
@@ -29,7 +30,8 @@
 #include "gl2d.h"
 
 #ifdef _WIN32
-#include <GL/wglew.h>
+#include <gl/GL.h>
+#include <Windows.h>
 #endif
 
 #include <fstream>
@@ -41,6 +43,7 @@
 #ifdef _MSC_VER
 #pragma warning( push )
 #pragma warning( disable : 4244 4305 4267 4996 4018)
+#pragma comment(lib, "Opengl32.lib")
 #endif
 
 #undef max
@@ -299,10 +302,12 @@ namespace gl2d
 		//	}
 		//}
 
-#ifdef _WIN32
+	#ifdef _WIN32
 		//add linux suport
+		
+		//if you are not using visual studio make shure you link to "Opengl32.lib"
 		extensions.wglSwapIntervalEXT = (PFNWGLSWAPINTERVALEXTPROC)wglGetProcAddress("wglSwapIntervalEXT");
-#endif
+	#endif
 
 		defaultShader = internal::createShaderProgram(defaultVertexShader, defaultFragmentShader);
 		defaultParticleShader = internal::createShaderProgram(defaultParticleVertexShader, defaultParcileFragmentShader);
@@ -314,8 +319,7 @@ namespace gl2d
 		//add linux suport
 		if (extensions.wglSwapIntervalEXT != nullptr)
 		{
-			//extensions.wglSwapIntervalEXT(b);
-			bool rezult = wglSwapIntervalEXT(b);
+			bool rezult = extensions.wglSwapIntervalEXT(b);
 			return rezult;
 		}
 		else
