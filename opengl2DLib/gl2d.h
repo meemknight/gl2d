@@ -37,6 +37,10 @@
 #define GL2D_SIMD 0
 #endif
 
+//you can set the opengl version to as low as 110 if you remove precision
+//or use opengl es
+#define GL2D_OPNEGL_SHADER_VERSION "#version 120 core"
+#define GL2D_OPNEGL_SHADER_PRECISION "precision mediump float;"
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
