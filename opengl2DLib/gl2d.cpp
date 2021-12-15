@@ -11,6 +11,8 @@
 // 1.2.2
 // added default values to structs
 // added some more error reporting
+// added option to change gl version and 
+//  shader presision
 // 
 //////////////////////////////////////////////////
 
@@ -19,12 +21,10 @@
 //
 //	investigate more simdize functions
 //	mabe check at runtime cpu features
-//	check min gl version
 //	add particle demo
 //	mabe add a flag to load textures in pixelated modes or not
 //	remake some functions
 //
-
 
 #include "gl2d.h"
 
@@ -45,6 +45,11 @@
 
 #undef max
 
+//you can set the opengl version to as low as 110 if you remove precision
+//or use opengl es
+#define GL2D_OPNEGL_SHADER_VERSION "#version 120 core"
+#define GL2D_OPNEGL_SHADER_PRECISION "precision mediump float;"
+
 namespace gl2d
 {
 #pragma region shaders
@@ -54,8 +59,8 @@ namespace gl2d
 	static Camera defaultCamera{};
 
 	static const char* defaultVertexShader =
-		"#version 300 es\n"
-		"precision mediump float;\n"
+		GL2D_OPNEGL_SHADER_VERSION "\n"
+		GL2D_OPNEGL_SHADER_PRECISION "\n"
 		"in vec2 quad_positions;\n"
 		"in vec4 quad_colors;\n"
 		"in vec2 texturePositions;\n"
@@ -69,20 +74,20 @@ namespace gl2d
 		"}\n";
 
 	static const char* defaultFragmentShader =
-		"#version 300 es\n"
-		"precision mediump float;\n"
+		GL2D_OPNEGL_SHADER_VERSION "\n"
+		GL2D_OPNEGL_SHADER_PRECISION "\n"
 		"out vec4 color;\n"
 		"in vec4 v_color;\n"
 		"in vec2 v_texture;\n"
 		"uniform sampler2D u_sampler;\n"
 		"void main()\n"
 		"{\n"
-		"    color = v_color * texture(u_sampler, v_texture);\n"
+		"    color = v_color * texture2D(u_sampler, v_texture);\n"
 		"}\n";
 
 	static const char* defaultParticleVertexShader =
-		"#version 300 es\n"
-		"precision mediump float;\n"
+		GL2D_OPNEGL_SHADER_VERSION "\n"
+		GL2D_OPNEGL_SHADER_PRECISION "\n"
 		"in vec2 quad_positions;\n"
 		"in vec4 quad_colors;\n"
 		"in vec2 texturePositions;\n"
@@ -96,53 +101,51 @@ namespace gl2d
 		"}\n";
 
 	static const char* defaultParcileFragmentShader =
-		R"(#version 300 es
-precision mediump float;
-out vec4 color;
-in vec4 v_color;
-in vec2 v_texture;
-uniform sampler2D u_sampler;
-
-vec3 rgbTohsv(vec3 c)
-{
-	vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
-	vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
-	vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
-
-	float d = q.x - min(q.w, q.y);
-	float e = 1.0e-10;
-	return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
-}
- 
-
-vec3 hsvTorgb(vec3 c)
-{
-	vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
-	vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
-	return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
-}
-
-const float cFilter = 5.f;
-
-void main()
-{
-	color = v_color * texture(u_sampler, v_texture);
-	
-	if(color.a <0.01)discard;
-	//color.a = 1.f;
-
-	//color.a = pow(color.a, 0.2); 
-
-	color.rgb *= cFilter;
-	color.rgb = floor(color.rgb);
-	color.rgb /= cFilter;
-
-	//color.rgb = rgbTohsv(color.rgb);
-
-	//color.rgb = hsvTorgb(color.rgb);
-	
-
-})";
+		GL2D_OPNEGL_SHADER_VERSION "\n"
+		GL2D_OPNEGL_SHADER_PRECISION "\n"
+		R"(out vec4 color;
+			in vec4 v_color;
+			in vec2 v_texture;
+			uniform sampler2D u_sampler;
+			
+			vec3 rgbTohsv(vec3 c)
+			{
+				vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+				vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+				vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+			
+				float d = q.x - min(q.w, q.y);
+				float e = 1.0e-10;
+				return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+			}
+			
+			vec3 hsvTorgb(vec3 c)
+			{
+				vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+				vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+				return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+			}
+			
+			const float cFilter = 5.f;
+			
+			void main()
+			{
+				color = v_color * texture2D(u_sampler, v_texture);
+				
+				if(color.a <0.01)discard;
+				//color.a = 1.f;
+			
+				//color.a = pow(color.a, 0.2); 
+			
+				color.rgb *= cFilter;				//
+				color.rgb = floor(color.rgb);		//remove color quality
+				color.rgb /= cFilter;				//
+			
+				//color.rgb = rgbTohsv(color.rgb);
+			
+				//color.rgb = hsvTorgb(color.rgb);
+			
+			})";
 
 #pragma endregion
 
