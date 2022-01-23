@@ -41,7 +41,7 @@
 #include <algorithm>
 #include <iostream>
 
-
+//if you are not using visual studio make shure you link to "Opengl32.lib"
 #ifdef _MSC_VER
 #pragma warning( push )
 #pragma warning( disable : 4244 4305 4267 4996 4018)
@@ -279,7 +279,11 @@ namespace gl2d
 		}
 	}
 
+#ifdef _WIN32
 	typedef BOOL(WINAPI* PFNWGLSWAPINTERVALEXTPROC) (int interval);
+#else
+	typedef bool(*PFNWGLSWAPINTERVALEXTPROC) (int interval);
+#endif
 
 	struct
 	{
@@ -836,7 +840,7 @@ namespace gl2d
 
 	}
 
-	void Renderer2D::render9Patch2(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotation, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords)
+	void Renderer2D::render9Patch2(const Rect position, const Color4f color, const glm::vec2 origin, const float rotation, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords)
 	{
 		glm::vec4 colorData[4] = { color, color, color, color };
 
@@ -853,6 +857,19 @@ namespace gl2d
 		float bottomBorder = (inner_texture_coords.w - textureCoords.w) / textureSpaceH * position.w;
 		float leftBorder = (inner_texture_coords.x - textureCoords.x) / textureSpaceW * position.z;
 		float rightBorder = (textureCoords.z - inner_texture_coords.z) / textureSpaceW * position.z;
+
+		float newAspectRatio = position.z / position.w;
+		
+		//topBorder *= newAspectRatio;
+		//bottomBorder *= newAspectRatio;
+		//leftBorder /= newAspectRatio;
+		//rightBorder /= newAspectRatio;
+
+		topBorder = 50;
+		bottomBorder = -50;
+		leftBorder = 0;
+		rightBorder = 0;
+
 
 		//inner
 		Rect innerPos = position;

@@ -37,6 +37,7 @@
 #define GL2D_SIMD 0
 #endif
 
+//if you are not using visual studio make shure you link to "Opengl32.lib"
 
 //if this is true it will use opengl130. If not it will use fome functionality from opengl3.
 //With some small tweaks to the shader code you can go even lower with minimal effort.
@@ -384,7 +385,7 @@ namespace gl2d
 		}
 
 		void render9Patch(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotation, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords);
-		void render9Patch2(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotation, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords);
+		void render9Patch2(const Rect position, const Color4f color, const glm::vec2 origin, const float rotation, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords);
 
 		void clearScreen(const Color4f color = Color4f{0,0,0,0});
 
