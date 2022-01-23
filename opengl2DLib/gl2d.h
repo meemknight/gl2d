@@ -37,10 +37,22 @@
 #define GL2D_SIMD 0
 #endif
 
-//you can set the opengl version to as low as 110 if you remove precision
-//or use opengl es
-#define GL2D_OPNEGL_SHADER_VERSION "#version 120 core"
-#define GL2D_OPNEGL_SHADER_PRECISION "precision mediump float;"
+
+//if this is true it will use opengl130. If not it will use fome functionality from opengl3.
+//With some small tweaks to the shader code you can go even lower with minimal effort.
+#define GL2D_USE_OPENGL_130 false
+
+#define GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED false
+#define GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS true
+
+
+//version of the shading language. this is the minimum but you can go lower if you midify the shader code with minimal effort
+#define GL2D_OPNEGL_SHADER_VERSION "#version 130"
+#define GL2D_OPNEGL_SHADER_PRECISION "precision highp float;"
+
+//this is the default capacity of the renderer
+#define GL2D_Renderer2D_Max_Triangle_Capacity 4200
+#define GL2D_DefaultTextureCoords (glm::vec4{ 0, 1, 1, 0 })
 
 #include <GL/glew.h>
 #include <glm/glm.hpp>
@@ -117,19 +129,28 @@ namespace gl2d
 		GLuint id = 0;
 
 		Texture() {};
-		Texture(const char* file) { loadFromFile(file); }
+		Texture(const char* file, bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED,
+			bool useMipMaps = GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS)
+			{ loadFromFile(file, pixelated, useMipMaps); }
 
 		glm::ivec2 GetSize();
 
 		//Note: This function expects a buffer of bytes in GL_RGBA format
-		void createFromBuffer(const char* image_data, const int width, const int height);
+		void createFromBuffer(const char* image_data, const int width,
+			const int height, bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED, bool useMipMaps = GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS);
 		void create1PxSquare(const char* b = 0);
-		void createFromFileData(const unsigned char* image_file_data, const size_t image_file_size);
+		void createFromFileData(const unsigned char* image_file_data, const size_t image_file_size, 
+			bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED, bool useMipMaps = GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS);
 		void createFromFileDataWithPixelPadding(const unsigned char* image_file_data,
-			const size_t image_file_size, int blockSize);
+			const size_t image_file_size, int blockSize,
+			bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED, bool useMipMaps = GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS);
 
-		void loadFromFile(const char* fileName);
-		void loadFromFileWithPixelPadding(const char* fileName, int blockSize);
+		void loadFromFile(const char* fileName,
+			bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED, bool useMipMaps = GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS);
+
+		//used for texture atlases, adds a pixel between each item to remove visual artefacts
+		void loadFromFileWithPixelPadding(const char* fileName, int blockSize,
+			bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED, bool useMipMaps = GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS);
 
 		void bind(const unsigned int sample = 0);
 		void unbind();
@@ -262,8 +283,6 @@ namespace gl2d
 	};
 
 
-#define Renderer2D_Max_Buffer_Capacity 25000
-#define DefaultTextureCoords (glm::vec4{ 0, 1, 1, 0 })
 
 	enum Renderer2DBufferType
 	{
@@ -279,16 +298,23 @@ namespace gl2d
 	{
 		Renderer2D() {};
 
+		//feel free to delete this lines but you probably don't want to copy the renderer from a place to another
+		Renderer2D(Renderer2D &other) = delete; 
+		Renderer2D operator=(Renderer2D &other) = delete;
+
 		void create();
+
+		//todo
+		void clear();
 
 		GLuint buffers[Renderer2DBufferType::bufferSize] = {};
 		GLuint vao = {};
 
 		//4 elements each component
-		glm::vec2 spritePositions[Renderer2D_Max_Buffer_Capacity];
-		glm::vec4 spriteColors[Renderer2D_Max_Buffer_Capacity];
-		glm::vec2 texturePositions[Renderer2D_Max_Buffer_Capacity];
-		Texture   spriteTextures[Renderer2D_Max_Buffer_Capacity];
+		glm::vec2 spritePositions[GL2D_Renderer2D_Max_Triangle_Capacity * 6];
+		glm::vec4 spriteColors[GL2D_Renderer2D_Max_Triangle_Capacity * 6];
+		glm::vec2 texturePositions[GL2D_Renderer2D_Max_Triangle_Capacity * 6];
+		Texture   spriteTextures[GL2D_Renderer2D_Max_Triangle_Capacity * 6];
 
 		int spritePositionsCount = 0;
 		int spriteColorsCount = 0;
@@ -326,22 +352,22 @@ namespace gl2d
 			const float spacing = 4, const float line_space = 3, bool showInCenter = 1, const Color4f ShadowColor = { 0.1,0.1,0.1,1 }
 		, const Color4f LightColor = {});
 
-		void renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = DefaultTextureCoords);
-		inline void renderRectangle(const Rect transforms, const Color4f colors, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = DefaultTextureCoords)
+		void renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords);
+		inline void renderRectangle(const Rect transforms, const Color4f colors, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords)
 		{
 			Color4f c[4] = { colors,colors,colors,colors };
 			renderRectangle(transforms, c, origin, rotation, texture, textureCoords);
 		}
 
-		void renderRectangleAbsRotation(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = DefaultTextureCoords);
-		inline void renderRectangleAbsRotation(const Rect transforms, const Color4f colors, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = DefaultTextureCoords)
+		void renderRectangleAbsRotation(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords);
+		inline void renderRectangleAbsRotation(const Rect transforms, const Color4f colors, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords)
 		{
 			Color4f c[4] = { colors,colors,colors,colors };
 			renderRectangleAbsRotation(transforms, c, origin, rotation, texture, textureCoords);
 		}
 
-		void renderRectangle(const Rect transforms, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = DefaultTextureCoords);
-		void renderRectangleAbsRotation(const Rect transforms, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = DefaultTextureCoords);
+		void renderRectangle(const Rect transforms, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords);
+		void renderRectangleAbsRotation(const Rect transforms, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords);
 
 		void renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin = { 0,0 }, const float rotation = 0);
 		inline void renderRectangle(const Rect transforms, const Color4f colors, const glm::vec2 origin = { 0,0 }, const float rotation = 0)
@@ -360,7 +386,7 @@ namespace gl2d
 		void render9Patch(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotation, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords);
 		void render9Patch2(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotation, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords);
 
-		void clearScreen(const Color4f color = Colors_Black);
+		void clearScreen(const Color4f color = Color4f{0,0,0,0});
 
 		void setShaderProgram(const internal::ShaderProgram shader);
 		void setCamera(const Camera camera);
@@ -372,7 +398,6 @@ namespace gl2d
 		void flushFBO(FrameBuffer frameBuffer);
 	};
 
-	//this should be called if the user changes the gl state by hand
 	void enableNecessaryGLFeatures();
 
 #pragma endregion

@@ -23,9 +23,11 @@
 //	investigate more simdize functions
 //	mabe check at runtime cpu features
 //	add particle demo
-//	mabe add a flag to load textures in pixelated modes or not
 //	remake some functions
+//	shaders
+//	add matrices transforms
 //
+
 
 #include "gl2d.h"
 
@@ -137,7 +139,7 @@ namespace gl2d
 				//color.a = pow(color.a, 0.2); 
 			
 				color.rgb *= cFilter;				//
-				color.rgb = floor(color.rgb);		//remove color quality
+				color.rgb = floor(color.rgb);		//remove color quality to get a retro effect
 				color.rgb /= cFilter;				//
 			
 				//color.rgb = rgbTohsv(color.rgb);
@@ -492,6 +494,8 @@ namespace gl2d
 
 	void gl2d::Renderer2D::flush()
 	{
+		enableNecessaryGLFeatures();
+
 		if (!hasInitialized) 
 		{
 			errorFunc("Library not initialized. Have you forgotten to call gl2d::init() ?");
@@ -584,14 +588,9 @@ namespace gl2d
 	void enableNecessaryGLFeatures()
 	{
 		glEnable(GL_BLEND);
-		glEnable(GL_MULTISAMPLE);
-		//glEnable(GL_SAMPLE_SHADING);
-
 		glDisable(GL_DEPTH_TEST);
-
 		glBlendEquation(GL_FUNC_ADD);
 		glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-
 	}
 
 	///////////////////// Renderer2D - render ///////////////////// 
@@ -1300,7 +1299,17 @@ namespace gl2d
 
 	void Renderer2D::clearScreen(const Color4f color)
 	{
+
+	#if GL2D_USE_OPENGL_130
+		GLfloat oldColor[4];
+		glGetFloatv(GL_COLOR_CLEAR_VALUE, oldColor);
+
+		glClearColor(color.r, color.g, color.b, color.a);
+		glClear(GL_COLOR_BUFFER_BIT);
+		glClearColor(oldColor[0], oldColor[1], oldColor[2], oldColor[3]);
+	#else
 		glClearBufferfv(GL_COLOR, 0, &color[0]);
+	#endif
 	}
 
 	void Renderer2D::setShaderProgram(const internal::ShaderProgram shader)
@@ -1330,7 +1339,8 @@ namespace gl2d
 		return s;
 	}
 
-	void Texture::createFromBuffer(const char* image_data, const int width, const int height)
+	void Texture::createFromBuffer(const char* image_data, const int width, const int height
+		,bool pixelated, bool useMipMaps)
 	{
 		GLuint id = 0;
 
@@ -1339,11 +1349,30 @@ namespace gl2d
 		glGenTextures(1, &id);
 		glBindTexture(GL_TEXTURE_2D, id);
 
-		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		if (pixelated)
+		{
+			if (useMipMaps)
+			{
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+			}
+			else 
+			{
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			}
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		}
+		else 
+		{
+			if (useMipMaps)
+			{
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+			}
+			else
+			{
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			}
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		}
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -1376,7 +1405,8 @@ namespace gl2d
 
 	}
 
-	void Texture::createFromFileData(const unsigned char* image_file_data, const size_t image_file_size)
+	void Texture::createFromFileData(const unsigned char* image_file_data, const size_t image_file_size
+		,bool pixelated, bool useMipMaps)
 	{
 		stbi_set_flip_vertically_on_load(true);
 
@@ -1386,13 +1416,14 @@ namespace gl2d
 
 		const unsigned char* decodedImage = stbi_load_from_memory(image_file_data, (int)image_file_size, &width, &height, &channels, 4);
 
-		createFromBuffer((const char*)decodedImage, width, height);
+		createFromBuffer((const char*)decodedImage, width, height, pixelated, useMipMaps);
 
 		//Replace stbi allocators
 		free((void*)decodedImage);
 	}
 
-	void Texture::createFromFileDataWithPixelPadding(const unsigned char* image_file_data, const size_t image_file_size, int blockSize)
+	void Texture::createFromFileDataWithPixelPadding(const unsigned char* image_file_data, const size_t image_file_size, int blockSize,
+		bool pixelated, bool useMipMaps)
 	{
 		stbi_set_flip_vertically_on_load(true);
 
@@ -1401,51 +1432,6 @@ namespace gl2d
 		int channels = 0;
 
 		const unsigned char* decodedImage = stbi_load_from_memory(image_file_data, (int)image_file_size, &width, &height, &channels, 4);
-
-		/*
-		int newW = width + (width / blockSize);
-		int newH = height + (height / blockSize);
-
-		unsigned char *newData = new unsigned char[newW * newH*4];
-
-		int newDataCursor=0;
-		int dataCursor=0;
-
-		for (int y = 0; y < newH; y++)
-		{
-
-			if(y%(blockSize+1) == blockSize)
-			{
-				for (int x = 0; x < newW; x++)
-				{
-					newData[newDataCursor++] = 0;
-					newData[newDataCursor++] = 0;
-					newData[newDataCursor++] = 0;
-					newData[newDataCursor++] = 0;
-				}
-			}else
-			{
-				for (int x = 0; x < newW; x++)
-				{
-					if(x%(blockSize+1) == blockSize)
-					{
-						newData[newDataCursor++] = 0;
-						newData[newDataCursor++] = 0;
-						newData[newDataCursor++] = 0;
-						newData[newDataCursor++] = 0;
-					}else
-					{
-						newData[newDataCursor++] = decodedImage[dataCursor++];
-						newData[newDataCursor++] = decodedImage[dataCursor++];
-						newData[newDataCursor++] = decodedImage[dataCursor++];
-						newData[newDataCursor++] = decodedImage[dataCursor++];
-					}
-
-				}
-			}
-
-		}
-		*/
 
 		int newW = width + ((width * 2) / blockSize);
 		int newH = height + ((height * 2) / blockSize);
@@ -1573,15 +1559,14 @@ namespace gl2d
 
 		}
 
-
-		createFromBuffer((const char*)newData, newW, newH);
+		createFromBuffer((const char*)newData, newW, newH, pixelated, useMipMaps);
 
 		//Replace stbi allocators
 		free((void*)decodedImage);
 		delete[] newData;
 	}
 
-	void Texture::loadFromFile(const char* fileName)
+	void Texture::loadFromFile(const char* fileName, bool pixelated, bool useMipMaps)
 	{
 		std::ifstream file(fileName, std::ios::binary);
 
@@ -1602,13 +1587,14 @@ namespace gl2d
 		file.read((char*)fileData, fileSize);
 		file.close();
 
-		createFromFileData(fileData, fileSize);
+		createFromFileData(fileData, fileSize, pixelated, useMipMaps);
 
 		delete[] fileData;
 
 	}
 
-	void Texture::loadFromFileWithPixelPadding(const char* fileName, int blockSize)
+	void Texture::loadFromFileWithPixelPadding(const char* fileName, int blockSize,
+		bool pixelated, bool useMipMaps)
 	{
 		std::ifstream file(fileName, std::ios::binary);
 
@@ -1629,7 +1615,7 @@ namespace gl2d
 		file.read((char*)fileData, fileSize);
 		file.close();
 
-		createFromFileDataWithPixelPadding(fileData, fileSize, blockSize);
+		createFromFileDataWithPixelPadding(fileData, fileSize, blockSize, pixelated, useMipMaps);
 
 		delete[] fileData;
 
