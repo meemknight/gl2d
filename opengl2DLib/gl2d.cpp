@@ -860,15 +860,23 @@ namespace gl2d
 
 		float newAspectRatio = position.z / position.w;
 		
-		//topBorder *= newAspectRatio;
-		//bottomBorder *= newAspectRatio;
-		//leftBorder /= newAspectRatio;
-		//rightBorder /= newAspectRatio;
+		if (newAspectRatio < 1.f) 
+		{
+			topBorder *= newAspectRatio;
+			bottomBorder *= newAspectRatio;
+		}
+		else
+		{
+			leftBorder /= newAspectRatio;
+			rightBorder /= newAspectRatio;
+		}
 
-		topBorder = 50;
-		bottomBorder = -50;
-		leftBorder = 0;
-		rightBorder = 0;
+	
+
+		//topBorder = 50;
+		//bottomBorder = -50;
+		//leftBorder = 0;
+		//rightBorder = 0;
 
 
 		//inner
