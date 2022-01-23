@@ -15,6 +15,11 @@
 //  shader presision
 // vsynk independend of gl loader
 // 
+// 1.2.3
+// small problems fixes
+// texture load flags
+// working on 9pathces
+// 
 //////////////////////////////////////////////////
 
 
@@ -26,6 +31,7 @@
 //	remake some functions
 //	shaders
 //	add matrices transforms
+//	flags for vbos
 //
 
 
