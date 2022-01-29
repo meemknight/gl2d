@@ -1,11 +1,9 @@
 //////////////////////////////////////////////////
-//gl2d.h				1.2.3
+//gl2d.h				1.2.4
 //Copyright(c) 2020 Luta Vlad
 //https://github.com/meemknight/gl2d
 //
-//
 //	dependences: glew, glm, stb_image, stb_trueType
-//
 //
 //	features: 
 //	

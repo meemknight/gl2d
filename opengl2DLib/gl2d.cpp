@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-//gl2d.cpp				1.2.2
+//gl2d.cpp				1.2.4
 //Copyright(c) 2020 Luta Vlad
 //https://github.com/meemknight/gl2d
 // 
@@ -19,6 +19,9 @@
 // small problems fixes
 // texture load flags
 // working on 9pathces
+// 
+// 1.2.4
+// working at fixing get text size
 // 
 //////////////////////////////////////////////////
 
@@ -1101,7 +1104,7 @@ namespace gl2d
 		return glm::vec4(v1.x, v1.y, v3.x, v3.y);
 	}
 
-	glm::vec2 Renderer2D::getTextSize(const char* text, const Font font,
+	glm::vec2 Renderer2D::getTextSize(const char *text, const Font font,
 		const float size, const float spacing, const float line_space)
 	{
 		if (font.texture.id == 0)
@@ -1176,11 +1179,11 @@ namespace gl2d
 
 		paddY += font.max_height * size + bonusY;
 
-		return glm::vec2{ paddX, paddY };
+		return glm::vec2{paddX, paddY};
 
 	}
 
-	void Renderer2D::renderText(glm::vec2 position, const char* text, const Font font,
+	void Renderer2D::renderText(glm::vec2 position, const char *text, const Font font,
 		const Color4f color, const float size, const float spacing, const float line_space, bool showInCenter,
 		const Color4f ShadowColor
 		, const Color4f LightColor
@@ -1298,27 +1301,27 @@ namespace gl2d
 				//rectangle.y = linePositionY - rectangle.w;
 				rectangle.y = linePositionY + quad.y0 * size;
 
-				glm::vec4 colorData[4] = { color, color, color, color };
+				glm::vec4 colorData[4] = {color, color, color, color};
 
 				if (ShadowColor.w)
 				{
-					glm::vec2 pos = { -5, 3 };
+					glm::vec2 pos = {-5, 3};
 					pos *= size;
-					renderRectangle({ rectangle.x + pos.x, rectangle.y + pos.y,  rectangle.z, rectangle.w },
-						ShadowColor, glm::vec2{ 0, 0 }, 0, font.texture,
-						glm::vec4{ quad.s0, quad.t0, quad.s1, quad.t1 });
+					renderRectangle({rectangle.x + pos.x, rectangle.y + pos.y,  rectangle.z, rectangle.w},
+						ShadowColor, glm::vec2{0, 0}, 0, font.texture,
+						glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1});
 
 				}
 
-				renderRectangle(rectangle, colorData, glm::vec2{ 0, 0 }, 0, font.texture, glm::vec4{ quad.s0, quad.t0, quad.s1, quad.t1 });
+				renderRectangle(rectangle, colorData, glm::vec2{0, 0}, 0, font.texture, glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1});
 
 				if (LightColor.w)
 				{
-					glm::vec2 pos = { -2, 1 };
+					glm::vec2 pos = {-2, 1};
 					pos *= size;
-					renderRectangle({ rectangle.x + pos.x, rectangle.y + pos.y,  rectangle.z, rectangle.w },
-						LightColor, glm::vec2{ 0, 0 }, 0, font.texture,
-						glm::vec4{ quad.s0, quad.t0, quad.s1, quad.t1 });
+					renderRectangle({rectangle.x + pos.x, rectangle.y + pos.y,  rectangle.z, rectangle.w},
+						LightColor, glm::vec2{0, 0}, 0, font.texture,
+						glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1});
 
 				}
 
