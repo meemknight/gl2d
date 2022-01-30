@@ -1116,7 +1116,7 @@ namespace gl2d
 		glm::vec2 position = {};
 
 		const int text_length = (int)strlen(text);
-		Rect rectangle;
+		Rect rectangle = {};
 		rectangle.x = position.x;
 		float linePositionY = position.y;
 
