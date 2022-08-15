@@ -28,6 +28,7 @@ int main()
 
 	gl2d::setVsync(1);
 
+	//allocate on heap or as a global variable. The object itself holds data directly
 	gl2d::Renderer2D *renderer = new gl2d::Renderer2D;
 	renderer->create();
 	
@@ -66,6 +67,14 @@ int main()
 		if (GetAsyncKeyState('D'))
 		{
 			renderer->currentCamera.position.x += speed * deltaTime;
+		}
+		if (GetAsyncKeyState('Q'))
+		{
+			renderer->currentCamera.zoom += 1 * deltaTime;
+		}
+		if (GetAsyncKeyState('E'))
+		{
+			renderer->currentCamera.zoom -= 1 * deltaTime;
 		}
 #pragma endregion
 
@@ -128,6 +137,20 @@ int main()
 
 			}
 		
+		}
+
+		if(0) //test view rect
+		{
+			auto rect = renderer->getViewRect();
+
+			std::cout << rect.x << " " << rect.y << " " << rect.z << " " << rect.w << "\n";
+
+			rect.x += 5;
+			rect.y += 5;
+			rect.z -= 10;
+			rect.w -= 10;
+
+			renderer->renderRectangle(rect, {0.5,0.9,0.6,0.2});
 		}
 
 		renderer->flush();
