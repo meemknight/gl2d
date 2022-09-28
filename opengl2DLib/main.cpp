@@ -110,6 +110,7 @@ int main()
 		renderer->render9Patch2({400, 50, 100, 300}, Colors_White, {}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
 		renderer->render9Patch2({600, 150, 300, 100}, Colors_White, {}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
 
+		if(0) //keyboard
 		for(int i=8;i<255;i++)
 		{
 			if(GetAsyncKeyState(i) == -32767 )

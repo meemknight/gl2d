@@ -420,7 +420,7 @@ namespace gl2d
 		unsigned char* fontMonochromeBuffer = new unsigned char[fontMonochromeBufferSize];
 		unsigned char* fontRgbaBuffer = new unsigned char[fontRgbaBufferSize];
 
-		packedCharsBuffer = new stbtt_packedchar[packedCharsBufferSize];
+		packedCharsBuffer = new stbtt_packedchar[packedCharsBufferSize]{};
 
 		stbtt_pack_context stbtt_context;
 		stbtt_PackBegin(&stbtt_context, fontMonochromeBuffer, size.x, size.y, 0, 2, NULL);
