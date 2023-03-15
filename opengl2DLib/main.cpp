@@ -32,7 +32,9 @@ int main()
 	gl2d::Renderer2D *renderer = new gl2d::Renderer2D;
 	renderer->create();
 	
-	gl2d::Font f("roboto_black.ttf");
+	//gl2d::Font f("roboto_black.ttf");
+	
+	
 	gl2d::Texture texture("test.jpg");
 	gl2d::Texture button("button.png", true, true);
 
@@ -94,23 +96,15 @@ int main()
 		glm::vec4 colors[4] = { Colors_Orange,Colors_Orange ,Colors_Orange ,Colors_Orange };
 		renderer->renderRectangle({ 10,10, 100, 100 }, colors, {}, 30);
 
-		renderer->renderText({ 0,100 }, "text Text", f, Colors_Red);
-		renderer->renderText({ 0,200 }, "text", f, Colors_Blue);
-		renderer->renderText({ 0,300 }, "text", f, Colors_Green);
-
-		renderer->renderRectangle({ 100,150, 100, 100 }, { 1,0,0,0.5 }, { 0,0 }, 0);
+		renderer->renderRectangle({ 100,150, 100, 100 }, { 1,0,0,0.5 }, { 0,0 }, 0.f);
 
 		glm::vec4 c[4] = {Colors_Orange, Colors_Orange, Colors_Green, Colors_Blue};
 		renderer->renderRectangle({ 300,300,10,10 }, c);
 
-		glm::vec2 textSize = renderer->getTextSize(text.c_str(), f);
-		renderer->renderText({ 300,300 }, text.c_str(), f, Colors_Gray,
-			1.5, 4.0, 3, false);
-
 		renderer->render9Patch2({400, 50, 100, 300}, Colors_White, {}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
 		renderer->render9Patch2({600, 150, 300, 100}, Colors_White, {}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
 
-		if(0) //keyboard
+		if(1) //keyboard
 		for(int i=8;i<255;i++)
 		{
 			if(GetAsyncKeyState(i) == -32767 )

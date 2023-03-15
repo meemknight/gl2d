@@ -71,6 +71,7 @@ namespace gl2d
 	static internal::ShaderProgram defaultShader = {};
 	static internal::ShaderProgram defaultParticleShader = {};
 	static Camera defaultCamera{};
+	static Texture white1pxSquareTexture = {};
 
 	static const char* defaultVertexShader =
 		GL2D_OPNEGL_SHADER_VERSION "\n"
@@ -187,30 +188,6 @@ namespace gl2d
 		float positionToScreenCoordsY(const float position, float h)
 		{
 			return -((-position / h) * 2 - 1);
-		}
-
-		stbtt_aligned_quad fontGetGlyphQuad(const Font font, const char c)
-		{
-			stbtt_aligned_quad quad = { 0 };
-
-			float x = 0;
-			float y = 0;
-
-			stbtt_GetPackedQuad(font.packedCharsBuffer,
-				font.size.x, font.size.y, c - ' ', &x, &y, &quad, 1);
-
-
-			return quad;
-		}
-
-		glm::vec4 fontGetGlyphTextureCoords(const Font font, const char c)
-		{
-			float xoffset = 0;
-			float yoffset = 0;
-
-			const stbtt_aligned_quad quad = fontGetGlyphQuad(font, c);
-
-			return glm::vec4{ quad.s0, quad.t0, quad.s1, quad.t1 };
 		}
 
 		GLuint loadShader(const char* source, GLenum shaderType)
@@ -330,6 +307,8 @@ namespace gl2d
 
 		defaultShader = internal::createShaderProgram(defaultVertexShader, defaultFragmentShader);
 		defaultParticleShader = internal::createShaderProgram(defaultParticleVertexShader, defaultParcileFragmentShader);
+		white1pxSquareTexture.create1PxSquare();
+
 		enableNecessaryGLFeatures();
 	}
 
@@ -403,82 +382,29 @@ namespace gl2d
 #pragma endregion
 
 	///////////////////// Font /////////////////////
-#pragma region Font
+#pragma	region Font
 
-	void Font::createFromTTF(const unsigned char* ttf_data, const size_t ttf_data_size)
+	void Font::createFromTTF(const unsigned char *ttf_data, const size_t ttf_data_size)
 	{
 
-		size.x = 2000,
-		size.y = 2000,
-		max_height = 0,
-		packedCharsBufferSize = ('~' - ' ');
-
-		//STB TrueType will give us a one channel buffer of the font that we then convert to RGBA for OpenGL
-		const size_t fontMonochromeBufferSize = size.x * size.y;
-		const size_t fontRgbaBufferSize = size.x * size.y * 4;
-
-		unsigned char* fontMonochromeBuffer = new unsigned char[fontMonochromeBufferSize];
-		unsigned char* fontRgbaBuffer = new unsigned char[fontRgbaBufferSize];
-
-		packedCharsBuffer = new stbtt_packedchar[packedCharsBufferSize]{};
-
 		stbtt_pack_context stbtt_context;
-		stbtt_PackBegin(&stbtt_context, fontMonochromeBuffer, size.x, size.y, 0, 2, NULL);
-		stbtt_PackSetOversampling(&stbtt_context, 2, 2);
-		stbtt_PackFontRange(&stbtt_context, ttf_data, 0, 65, ' ', '~' - ' ', packedCharsBuffer);
-		stbtt_PackEnd(&stbtt_context);
 
-		for (int i = 0; i < fontMonochromeBufferSize; i++)
-		{
+		stbtt_fontinfo info = {};
+		//stbtt_ScaleForMappingEmToPixels();
 
-			fontRgbaBuffer[(i * 4)] = fontMonochromeBuffer[i];
-			fontRgbaBuffer[(i * 4) + 1] = fontMonochromeBuffer[i];
-			fontRgbaBuffer[(i * 4) + 2] = fontMonochromeBuffer[i];
+		//stbtt_PackFontRange()
+		//stbtt_PackFontRange
 
-			if (fontMonochromeBuffer[i] > 1)
-			{
-				fontRgbaBuffer[(i * 4) + 3] = 255;
-			}
-			else
-			{
-				fontRgbaBuffer[(i * 4) + 3] = 0;
-			}
-		}
 
-		//Init texture
-		{
-			glGenTextures(1, &texture.id);
-			glBindTexture(GL_TEXTURE_2D, texture.id);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, fontRgbaBuffer);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		}
-
-		delete[] fontMonochromeBuffer;
-		delete[] fontRgbaBuffer;
-
-		for (char c = ' '; c <= '~'; c++)
-		{
-			const stbtt_aligned_quad  q = internal::fontGetGlyphQuad(*this, c);
-			const float               m = q.y1 - q.y0;
-
-			if (m > max_height && m < 1.e+8f)
-			{
-				max_height = m;
-			}
-		}
 	}
 
-	void Font::createFromFile(const char* file)
+	void Font::createFromFile(const char *file)
 	{
 		std::ifstream fileFont(file, std::ios::binary);
 
 		if (!fileFont.is_open())
 		{
-			char c[300] = { 0 };
+			char c[300] = {0};
 			strcat(c, "error openning: ");
 			strcat(c + strlen(c), file);
 			errorFunc(c);
@@ -489,8 +415,8 @@ namespace gl2d
 		fileFont.seekg(0, std::ios::end);
 		fileSize = (int)fileFont.tellg();
 		fileFont.seekg(0, std::ios::beg);
-		unsigned char* fileData = new unsigned char[fileSize];
-		fileFont.read((char*)fileData, fileSize);
+		unsigned char *fileData = new unsigned char[fileSize];
+		fileFont.read((char *)fileData, fileSize);
 		fileFont.close();
 
 		createFromTTF(fileData, fileSize);
@@ -627,7 +553,7 @@ namespace gl2d
 		if (textureCopy.id == 0)
 		{
 			errorFunc("Invalid texture");
-			textureCopy = this->white1pxSquareTexture;
+			textureCopy = white1pxSquareTexture;
 		}
 
 		//We need to flip texture_transforms.y
@@ -733,12 +659,12 @@ namespace gl2d
 
 	void Renderer2D::renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation)
 	{
-		renderRectangle(transforms, colors, origin, rotation, this->white1pxSquareTexture);
+		renderRectangle(transforms, colors, origin, rotation, white1pxSquareTexture);
 	}
 
 	void Renderer2D::renderRectangleAbsRotation(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation)
 	{
-		renderRectangleAbsRotation(transforms, colors, origin, rotation, this->white1pxSquareTexture);
+		renderRectangleAbsRotation(transforms, colors, origin, rotation, white1pxSquareTexture);
 	}
 
 	void Renderer2D::render9Patch(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotation, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords)
@@ -1039,8 +965,6 @@ namespace gl2d
 			errorFunc("Library not initialized. Have you forgotten to call gl2d::init() ?");
 		}
 
-		white1pxSquareTexture.create1PxSquare();
-
 		spritePositionsCount = 0;
 		spriteColorsCount = 0;
 		texturePositionsCount = 0;
@@ -1066,6 +990,14 @@ namespace gl2d
 		glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
 		glBindVertexArray(0);
+	}
+
+	void Renderer2D::clear()
+	{
+		white1pxSquareTexture.cleanup();
+		glDeleteVertexArrays(1, &vao);
+		glDeleteBuffers(Renderer2DBufferType::bufferSize, buffers);
+
 	}
 
 	void Renderer2D::pushShader(internal::ShaderProgram s)
@@ -1170,233 +1102,6 @@ namespace gl2d
 		v3.y = internal::positionToScreenCoordsY(v3.y, (float)windowH);
 
 		return glm::vec4(v1.x, v1.y, v3.x, v3.y);
-	}
-
-	glm::vec2 Renderer2D::getTextSize(const char *text, const Font font,
-		const float size, const float spacing, const float line_space)
-	{
-		if (font.texture.id == 0)
-		{
-			errorFunc("Missing font");
-			return {};
-		}
-
-		glm::vec2 position = {};
-
-		const int text_length = (int)strlen(text);
-		Rect rectangle = {};
-		rectangle.x = position.x;
-		float linePositionY = position.y;
-
-		//This is the y position we render at because it advances when we encounter newlines
-		float maxPos = 0;
-		float maxPosY = 0;
-		float bonusY = 0;
-
-		for (int i = 0; i < text_length; i++)
-		{
-			if (text[i] == '\n')
-			{
-				rectangle.x = position.x;
-				linePositionY += (font.max_height + line_space) * size;
-				bonusY += (font.max_height + line_space) * size;
-				maxPosY = 0;
-			}
-			else if (text[i] == '\t')
-			{
-				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-				(font, '_');
-				auto x = quad.x1 - quad.x0;
-
-				rectangle.x += x * size * 3 + spacing * size;
-			}
-			else if (text[i] == ' ')
-			{
-				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-				(font, '_');
-				auto x = quad.x1 - quad.x0;
-
-				rectangle.x += x * size + spacing * size;
-			}
-			else if (text[i] >= ' ' && text[i] <= '~')
-			{
-				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-				(font, text[i]);
-
-				rectangle.z = quad.x1 - quad.x0;
-				rectangle.w = quad.y1 - quad.y0;
-
-				rectangle.z *= size;
-				rectangle.w *= size;
-
-				rectangle.y = linePositionY + quad.y0 * size;
-
-				rectangle.x += rectangle.z + spacing * size;
-
-				maxPosY = std::max(maxPosY, rectangle.y);
-				maxPos = std::max(maxPos, rectangle.x);
-			}
-		}
-
-		maxPos = std::max(maxPos, rectangle.x);
-		maxPosY = std::max(maxPosY, rectangle.y);
-
-		float paddX = maxPos;
-
-		float paddY = maxPosY;
-
-		paddY += font.max_height * size + bonusY;
-
-		return glm::vec2{paddX, paddY};
-
-	}
-
-	void Renderer2D::renderText(glm::vec2 position, const char *text, const Font font,
-		const Color4f color, const float size, const float spacing, const float line_space, bool showInCenter,
-		const Color4f ShadowColor
-		, const Color4f LightColor
-	)
-	{
-		if (font.texture.id == 0)
-		{
-			errorFunc("Missing font");
-			return;
-		}
-
-		const int text_length = (int)strlen(text);
-		Rect rectangle;
-		rectangle.x = position.x;
-		float linePositionY = position.y;
-
-		if (showInCenter)
-		{
-			//This is the y position we render at because it advances when we encounter newlines
-
-			float maxPos = 0;
-			float maxPosY = 0;
-
-			for (int i = 0; i < text_length; i++)
-			{
-				if (text[i] == '\n')
-				{
-					rectangle.x = position.x;
-					linePositionY += (font.max_height + line_space) * size;
-				}
-				else if (text[i] == '\t')
-				{
-					const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-					(font, '_');
-					auto x = quad.x1 - quad.x0;
-
-					rectangle.x += x * size * 3 + spacing * size;
-				}
-				else if (text[i] == ' ')
-				{
-					const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-					(font, '_');
-					auto x = quad.x1 - quad.x0;
-
-					rectangle.x += x * size + spacing * size;
-				}
-				else if (text[i] >= ' ' && text[i] <= '~')
-				{
-					const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-					(font, text[i]);
-
-					rectangle.z = quad.x1 - quad.x0;
-					rectangle.w = quad.y1 - quad.y0;
-
-					rectangle.z *= size;
-					rectangle.w *= size;
-
-					rectangle.y = linePositionY + quad.y0 * size;
-
-
-					rectangle.x += rectangle.z + spacing * size;
-					maxPos = std::max(maxPos, rectangle.x);
-					maxPosY = std::max(maxPosY, rectangle.y);
-				}
-			}
-
-			float padd = maxPos - position.x;
-			padd /= 2;
-			position.x -= padd;
-
-			float paddY = maxPosY - position.y;
-			position.y -= paddY;
-		}
-
-		rectangle = {};
-		rectangle.x = position.x;
-
-		//This is the y position we render at because it advances when we encounter newlines
-		linePositionY = position.y;
-
-		for (int i = 0; i < text_length; i++)
-		{
-			if (text[i] == '\n')
-			{
-				rectangle.x = position.x;
-				linePositionY += (font.max_height + line_space) * size;
-			}
-			else if (text[i] == '\t')
-			{
-				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-				(font, '_');
-				auto x = quad.x1 - quad.x0;
-
-				rectangle.x += x * size * 3 + spacing * size;
-			}
-			else if (text[i] == ' ')
-			{
-				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-				(font, '_');
-				auto x = quad.x1 - quad.x0;
-				rectangle.x += x * size + spacing * size;
-			}
-			else if (text[i] >= ' ' && text[i] <= '~')
-			{
-
-				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-				(font, text[i]);
-
-				rectangle.z = quad.x1 - quad.x0;
-				rectangle.w = quad.y1 - quad.y0;
-
-				rectangle.z *= size;
-				rectangle.w *= size;
-
-				//rectangle.y = linePositionY - rectangle.w;
-				rectangle.y = linePositionY + quad.y0 * size;
-
-				glm::vec4 colorData[4] = {color, color, color, color};
-
-				if (ShadowColor.w)
-				{
-					glm::vec2 pos = {-5, 3};
-					pos *= size;
-					renderRectangle({rectangle.x + pos.x, rectangle.y + pos.y,  rectangle.z, rectangle.w},
-						ShadowColor, glm::vec2{0, 0}, 0, font.texture,
-						glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1});
-
-				}
-
-				renderRectangle(rectangle, colorData, glm::vec2{0, 0}, 0, font.texture, glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1});
-
-				if (LightColor.w)
-				{
-					glm::vec2 pos = {-2, 1};
-					pos *= size;
-					renderRectangle({rectangle.x + pos.x, rectangle.y + pos.y,  rectangle.z, rectangle.w},
-						LightColor, glm::vec2{0, 0}, 0, font.texture,
-						glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1});
-
-				}
-
-
-				rectangle.x += rectangle.z + spacing * size;
-			}
-		}
 	}
 
 	void Renderer2D::clearScreen(const Color4f color)
@@ -1883,7 +1588,7 @@ namespace gl2d
 		if (texture.id)
 		{
 			glDeleteTextures(1, &texture.id);
-			texture = 0;
+			texture = {};
 		}
 
 		//glDeleteTextures(1, &depthtTexture);
@@ -2500,6 +2205,7 @@ namespace gl2d
 
 		return dist(random);
 	}
+
 
 }
 

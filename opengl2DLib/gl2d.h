@@ -128,7 +128,7 @@ namespace gl2d
 		GLuint id = 0;
 
 		Texture() {};
-		Texture(const char* file, bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED,
+		explicit Texture(const char* file, bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED,
 			bool useMipMaps = GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS)
 			{ loadFromFile(file, pixelated, useMipMaps); }
 
@@ -157,7 +157,7 @@ namespace gl2d
 		void cleanup();
 	};
 
-	struct TextureRegion
+	struct TextureRegion //todo add uses for this
 	{
 		Texture texture;
 		glm::vec4 textureCoords;
@@ -213,27 +213,23 @@ namespace gl2d
 
 	///////////////////// Font /////////////////////
 #pragma region Font
-#define Default_Font_Characters_Range_Begin cast(char, ' ')
-#define Default_Font_Characters_Range_End cast(char, '~')
-#define Default_Font_Characters_Range_Size cast(isize, Default_Font_Characters_Range_End - Default_Font_Characters_Range_Begin)
 
-	typedef float Font_Size;
-
-	typedef struct Font Font;
 	struct Font
 	{
 		Texture           texture = {};
 		glm::ivec2        size = {};
-		stbtt_packedchar* packedCharsBuffer = 0;
+		stbtt_packedchar *packedCharsBuffer = 0;
 		int               packedCharsBufferSize = 0;
 		float             max_height = 0.f;
 
 		Font() {}
-		explicit Font(const char* file) { createFromFile(file); }
+		explicit Font(const char *file) { createFromFile(file); }
 
-		void createFromTTF(const unsigned char* ttf_data, const size_t ttf_data_size);
-		void createFromFile(const char* file);
+		void createFromTTF(const unsigned char *ttf_data, const size_t ttf_data_size);
+		void createFromFile(const char *file);
+
 	};
+
 
 #pragma endregion
 
@@ -303,7 +299,7 @@ namespace gl2d
 
 		void create();
 
-		//todo
+		//does not clear resources allocated by user like textures, fonts and fbos
 		void clear();
 
 		GLuint buffers[Renderer2DBufferType::bufferSize] = {};
@@ -320,7 +316,6 @@ namespace gl2d
 		int texturePositionsCount = 0;
 		int spriteTexturesCount = 0;
 
-		Texture white1pxSquareTexture = {};
 
 		internal::ShaderProgram currentShader = {};
 		std::vector<internal::ShaderProgram> shaderPushPop;
@@ -350,16 +345,6 @@ namespace gl2d
 			spriteTexturesCount = 0;
 			texturePositionsCount = 0;
 		}
-
-		glm::vec2 getTextSize(const char* text, const Font font, const float size = 1.5f,
-			const float spacing = 4, const float line_space = 3);
-
-		// The origin will be the bottom left corner since it represents the line for the text to be drawn
-		//Pacing and lineSpace are influenced by size
-		//todo the function should returns the size of the text drawn also refactor
-		void renderText(glm::vec2 position, const char* text, const Font font, const Color4f color, const float size = 1.5f,
-			const float spacing = 4, const float line_space = 3, bool showInCenter = 1, const Color4f ShadowColor = { 0.1,0.1,0.1,1 }
-		, const Color4f LightColor = {});
 
 		void renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords);
 		inline void renderRectangle(const Rect transforms, const Color4f colors, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords)
