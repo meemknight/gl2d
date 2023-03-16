@@ -346,6 +346,16 @@ namespace gl2d
 			texturePositionsCount = 0;
 		}
 
+		glm::vec2 getTextSize(const char *text, const Font font, const float size = 1.5f,
+			const float spacing = 4, const float line_space = 3);
+
+		// The origin will be the bottom left corner since it represents the line for the text to be drawn
+		//Pacing and lineSpace are influenced by size
+		//todo the function should returns the size of the text drawn also refactor
+		void renderText(glm::vec2 position, const char *text, const Font font, const Color4f color, const float size = 1.5f,
+			const float spacing = 4, const float line_space = 3, bool showInCenter = 1, const Color4f ShadowColor = {0.1,0.1,0.1,1}
+		, const Color4f LightColor = {});
+
 		void renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords);
 		inline void renderRectangle(const Rect transforms, const Color4f colors, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords)
 		{

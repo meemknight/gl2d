@@ -32,7 +32,7 @@ int main()
 	gl2d::Renderer2D *renderer = new gl2d::Renderer2D;
 	renderer->create();
 	
-	//gl2d::Font f("roboto_black.ttf");
+	gl2d::Font f("roboto_black.ttf");
 	
 	
 	gl2d::Texture texture("test.jpg");
@@ -133,6 +133,8 @@ int main()
 			}
 		
 		}
+
+		renderer->renderText({0,0}, text.c_str(), f, Colors_White);
 
 		if(0) //test view rect
 		{
