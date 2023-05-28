@@ -27,9 +27,15 @@
     <ClCompile Include="stb_truetype.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gl2dParticleSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gl2d.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gl2dParticleSystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

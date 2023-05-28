@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="gl2dParticleSystem.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="gl2d.cpp" />
     <ClCompile Include="stb_image.cpp" />
@@ -26,6 +27,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="gl2d.h" />
+    <ClInclude Include="gl2dParticleSystem.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>

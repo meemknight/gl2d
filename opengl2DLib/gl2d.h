@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-//gl2d.h				1.2.5
+//gl2d.h				1.2.6
 //Copyright(c) 2020 Luta Vlad
 //https://github.com/meemknight/gl2d
 //
@@ -45,7 +45,7 @@
 #define GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS true
 
 
-//version of the shading language. this is the minimum but you can go lower if you midify the shader code with minimal effort
+//version of the shading language. this is the minimum but you can go lower if you modify the shader code with minimal effort
 #define GL2D_OPNEGL_SHADER_VERSION "#version 130"
 #define GL2D_OPNEGL_SHADER_PRECISION "precision highp float;"
 
@@ -77,14 +77,16 @@ namespace gl2d
 	//returns false on fail
 	bool setVsync(bool b);
 
+	struct ShaderProgram
+	{
+		GLuint id;
+		int u_sampler;
+	};
+
+	ShaderProgram createShaderProgram(const char *vertex, const char *fragment);
+
 	namespace internal
 	{
-		struct ShaderProgram
-		{
-			GLuint id;
-			int u_sampler;
-		};
-
 		float positionToScreenCoordsX(const float position, float w);
 		float positionToScreenCoordsY(const float position, float h);
 
@@ -155,12 +157,6 @@ namespace gl2d
 		void unbind();
 
 		void cleanup();
-	};
-
-	struct TextureRegion //todo add uses for this
-	{
-		Texture texture;
-		glm::vec4 textureCoords;
 	};
 
 #pragma endregion
@@ -248,7 +244,7 @@ namespace gl2d
 		void setDefault() { *this = Camera{}; }
 		glm::mat3 getMatrix();
 
-		void follow(glm::vec2 pos, float speed, float max, float w, float h);
+		void follow(glm::vec2 pos, float speed, float min, float max, float w, float h);
 
 		glm::vec2 convertPoint(const glm::vec2& p, float windowW, float windowH); //todo move to internal
 	};
@@ -317,9 +313,9 @@ namespace gl2d
 		int spriteTexturesCount = 0;
 
 
-		internal::ShaderProgram currentShader = {};
-		std::vector<internal::ShaderProgram> shaderPushPop;
-		void pushShader(internal::ShaderProgram s = {});
+		ShaderProgram currentShader = {};
+		std::vector<ShaderProgram> shaderPushPop;
+		void pushShader(ShaderProgram s = {});
 		void popShader();
 
 		Camera currentCamera = {};
@@ -392,9 +388,10 @@ namespace gl2d
 
 		void clearScreen(const Color4f color = Color4f{0,0,0,0});
 
-		void setShaderProgram(const internal::ShaderProgram shader);
+		void setShaderProgram(const ShaderProgram shader);
 		void setCamera(const Camera camera);
 
+		//will reset on the current stack
 		void resetCameraAndShader();
 
 		//draws to the screen
@@ -407,118 +404,6 @@ namespace gl2d
 #pragma endregion
 
 
-	///////////////////// ParticleSysyem /////////////////////
-#pragma region ParticleSysyem
-
-	struct ParticleApearence
-	{
-		glm::vec2 size = {};
-		glm::vec4 color1 = {};
-		glm::vec4 color2 = {};
-	};
-
-	enum TRANZITION_TYPES
-	{
-		none = 0,
-		linear,
-		curbe,
-		abruptCurbe,
-		wave,
-		wave2,
-		delay,
-		delay2
-	};
-
-
-	struct ParticleSettings
-	{
-		ParticleSettings* deathRattle = nullptr;
-		ParticleSettings* subemitParticle = nullptr;
-
-		int onCreateCount = 0;
-
-		glm::vec2 subemitParticleTime = {};
-
-		glm::vec2 positionX = {};
-		glm::vec2 positionY = {};
-
-		glm::vec2 particleLifeTime = {}; // move
-		glm::vec2 directionX = {};
-		glm::vec2 directionY = {};
-		glm::vec2 dragX = {};
-		glm::vec2 dragY = {};
-
-		glm::vec2 rotation = {};
-		glm::vec2 rotationSpeed = {};
-		glm::vec2 rotationDrag = {};
-
-		ParticleApearence createApearence = {};
-		ParticleApearence createEndApearence = {};
-
-		gl2d::Texture* texturePtr = 0;
-
-		int tranzitionType = TRANZITION_TYPES::linear;
-	};
-
-
-	struct ParticleSystem
-	{
-		void initParticleSystem(int size);
-		void cleanup();
-
-		void emitParticleWave(ParticleSettings* ps, glm::vec2 pos);
-
-
-		void applyMovement(float deltaTime);
-
-		void draw(Renderer2D& r);
-
-		bool postProcessing = true;
-		float pixelateFactor = 2;
-
-	private:
-
-		int size = 0;
-
-		float* posX = 0;
-		float* posY = 0;
-
-		float* directionX = 0;
-		float* directionY = 0;
-
-		float* rotation = 0;
-
-		float* sizeXY = 0;
-
-		float* dragX = 0;
-		float* dragY = 0;
-
-		float* duration = 0;
-		float* durationTotal = 0;
-
-		glm::vec4* color = 0;
-
-		float* rotationSpeed = 0;
-		float* rotationDrag = 0;
-
-		float* emitTime = 0;
-
-		char* tranzitionType = 0;
-		ParticleSettings** deathRattle = 0;
-		ParticleSettings** thisParticleSettings = 0;
-		ParticleSettings** emitParticle = 0;
-
-		gl2d::Texture** textures = 0;
-
-		std::mt19937 random{ std::random_device{}() };
-
-		gl2d::FrameBuffer fb = {};
-
-		float rand(glm::vec2 v);
-	};
-
-
-#pragma endregion
 
 
 
