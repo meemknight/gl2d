@@ -23,10 +23,11 @@ features:
 - [x] shaders
 - [x] frame buffers
 - [x] particle system (with a post process effect to make it look lo poly)
+- [x] add cmake
 
 todo:
 - [ ] better api
 - [ ] documentation
 - [ ] easier to use custom post process effect for particles
-- [ ] add cmake
+
 - [ ] add more examples
