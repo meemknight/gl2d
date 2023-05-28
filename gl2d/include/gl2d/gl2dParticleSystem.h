@@ -8,6 +8,7 @@ namespace gl2d
 #pragma region ParticleSysyem
 
 	void initgl2dParticleSystem();
+	void cleanupgl2dParticleSystem();
 
 	struct ParticleApearence
 	{

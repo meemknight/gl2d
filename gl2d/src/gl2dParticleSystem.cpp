@@ -634,4 +634,10 @@ void initgl2dParticleSystem()
 	defaultParticleShader = createShaderProgram(defaultParticleVertexShader, defaultParcileFragmentShader);
 }
 
+void cleanupgl2dParticleSystem()
+{
+	glDeleteShader(defaultParticleShader.id);
+}
+
+
 };

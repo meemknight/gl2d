@@ -66,6 +66,8 @@ namespace gl2d
 
 	void init();
 
+	void clearnup();
+
 	void defaultErrorFunc(const char* msg);
 
 	using errorFuncType = decltype(defaultErrorFunc);

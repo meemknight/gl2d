@@ -36,6 +36,7 @@
 // fixed camera follow
 // moved the particle system into another file
 // added a proper cmake
+// used the proper stbi free function
 // 
 //////////////////////////////////////////////////
 
@@ -234,6 +235,13 @@ namespace gl2d
 		white1pxSquareTexture.create1PxSquare();
 
 		enableNecessaryGLFeatures();
+	}
+
+	void clearnup()
+	{
+		white1pxSquareTexture.cleanup();
+		glDeleteShader(defaultShader.id);
+		hasInitialized = false;
 	}
 
 	bool setVsync(bool b)
@@ -1023,10 +1031,8 @@ namespace gl2d
 
 	void Renderer2D::clear()
 	{
-		white1pxSquareTexture.cleanup();
 		glDeleteVertexArrays(1, &vao);
 		glDeleteBuffers(Renderer2DBufferType::bufferSize, buffers);
-
 	}
 
 	void Renderer2D::pushShader(ShaderProgram s)
@@ -1481,8 +1487,7 @@ namespace gl2d
 
 		createFromBuffer((const char*)decodedImage, width, height, pixelated, useMipMaps);
 
-		//Replace stbi allocators
-		free((void*)decodedImage);
+		STBI_FREE(decodedImage);
 	}
 
 	void Texture::createFromFileDataWithPixelPadding(const unsigned char* image_file_data, const size_t image_file_size, int blockSize,
@@ -1624,8 +1629,7 @@ namespace gl2d
 
 		createFromBuffer((const char*)newData, newW, newH, pixelated, useMipMaps);
 
-		//Replace stbi allocators
-		free((void*)decodedImage);
+		STBI_FREE(decodedImage);
 		delete[] newData;
 	}
 
