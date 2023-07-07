@@ -580,7 +580,7 @@ void ParticleSystem::draw(Renderer2D &r)
 
 		if (textures[i] != nullptr)
 		{
-			r.renderRectangle(p, c, {0,0}, rotation[i], *textures[i]);
+			r.renderRectangle(p, *textures[i], c, { 0, 0 }, rotation[i]);
 		}
 		else
 		{
@@ -604,7 +604,7 @@ void ParticleSystem::draw(Renderer2D &r)
 
 		auto s = r.currentShader;
 
-		r.renderRectangle({0,0,w,h}, {}, 0, fb.texture);
+		r.renderRectangle({0,0,w,h}, fb.texture);
 
 		r.setShaderProgram(defaultParticleShader);
 		r.flush();

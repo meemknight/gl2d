@@ -37,17 +37,21 @@
 // moved the particle system into another file
 // added a proper cmake
 // used the proper stbi free function
+// added a default fbo support
+// added proper error reporting (with uer defined data)
 // 
-//////////////////////////////////////////////////
+// 1.4.0
+// much needed api refactoring
+// removed capacity render limit
+// added some more comments
+// 
+/////////////////////////////////////////////////////////
 
 
 //	todo
 //
-//	investigate more simdize functions
-//	mabe check at runtime cpu features
 //	add particle demo
-//	remake some functions
-//	shaders
+//	shaders demo
 //	add matrices transforms
 //	flags for vbos
 //	
@@ -113,9 +117,15 @@ namespace gl2d
 
 	static errorFuncType* errorFunc = defaultErrorFunc;
 
-	void defaultErrorFunc(const char* msg)
+	void defaultErrorFunc(const char* msg, void *userDefinedData)
 	{
 		std::cerr << "gl2d error: " << msg << "\n";
+	}
+
+	void *userDefinedData = 0;
+	void setUserDefinedData(void *data)
+	{
+		userDefinedData = data;
 	}
 
 	errorFuncType* setErrorFuncCallback(errorFuncType* newFunc)
@@ -184,7 +194,7 @@ namespace gl2d
 
 				message[l - 1] = 0;
 
-				errorFunc(message);
+				errorFunc(message, userDefinedData);
 
 				delete[] message;
 
@@ -319,7 +329,7 @@ namespace gl2d
 
 			glGetProgramInfoLog(shader.id, l, &l, message);
 
-			errorFunc(message);
+			errorFunc(message, userDefinedData);
 
 			delete[] message;
 		}
@@ -444,7 +454,7 @@ namespace gl2d
 			char c[300] = {0};
 			strcat(c, "error openning: ");
 			strcat(c + strlen(c), file);
-			errorFunc(c);
+			errorFunc(c, userDefinedData);
 			return;
 		}
 
@@ -472,69 +482,71 @@ namespace gl2d
 	///////////////////// Renderer2D /////////////////////
 #pragma region Renderer2D
 
-	void gl2d::Renderer2D::flush()
+	//won't bind any fbo
+	void internalFlush(gl2d::Renderer2D &renderer, bool clearDrawData)
 	{
 		enableNecessaryGLFeatures();
 
-		if (!hasInitialized) 
+		if (!hasInitialized)
 		{
-			errorFunc("Library not initialized. Have you forgotten to call gl2d::init() ?");
+			errorFunc("Library not initialized. Have you forgotten to call gl2d::init() ?", userDefinedData);
 		}
 
-		if (!vao)
+		if (!renderer.vao)
 		{
-			errorFunc("Renderer not initialized. Have you forgotten to call gl2d::Renderer2D::create() ?");
+			errorFunc("Renderer not initialized. Have you forgotten to call gl2d::Renderer2D::create() ?", userDefinedData);
 		}
 
-		if (windowH == 0 || windowW == 0)
+		if (renderer.windowH == 0 || renderer.windowW == 0)
 		{
-			spritePositionsCount = 0;
-			spriteColorsCount = 0;
-			spriteTexturesCount = 0;
-			texturePositionsCount = 0;
+			if (clearDrawData)
+			{
+				renderer.clearDrawData();
+			}
+
 			return;
 		}
 
-		if (spriteTexturesCount == 0)
+		if(renderer.spriteTextures.empty())
 		{
 			return;
 		}
 
-		glViewport(0, 0, windowW, windowH);
+		glViewport(0, 0, renderer.windowW, renderer.windowH);
 
-		glBindVertexArray(vao);
+		glBindVertexArray(renderer.vao);
 
-		glUseProgram(currentShader.id);
+		glUseProgram(renderer.currentShader.id);
 
-		glUniform1i(currentShader.u_sampler, 0);
+		glUniform1i(renderer.currentShader.u_sampler, 0);
 
-		glBindBuffer(GL_ARRAY_BUFFER, buffers[Renderer2DBufferType::quadPositions]);
-		glBufferData(GL_ARRAY_BUFFER, spritePositionsCount * sizeof(glm::vec2), spritePositions, GL_STREAM_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, renderer.buffers[Renderer2DBufferType::quadPositions]);
+		glBufferData(GL_ARRAY_BUFFER, renderer.spritePositions.size() * sizeof(glm::vec2), renderer.spritePositions.data(), GL_STREAM_DRAW);
 
-		glBindBuffer(GL_ARRAY_BUFFER, buffers[Renderer2DBufferType::quadColors]);
-		glBufferData(GL_ARRAY_BUFFER, spriteColorsCount * sizeof(glm::vec4), spriteColors, GL_STREAM_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, renderer.buffers[Renderer2DBufferType::quadColors]);
+		glBufferData(GL_ARRAY_BUFFER, renderer.spriteColors.size() * sizeof(glm::vec4), renderer.spriteColors.data(), GL_STREAM_DRAW);
 
-		glBindBuffer(GL_ARRAY_BUFFER, buffers[Renderer2DBufferType::texturePositions]);
-		glBufferData(GL_ARRAY_BUFFER, texturePositionsCount * sizeof(glm::vec2), texturePositions, GL_STREAM_DRAW);
+		glBindBuffer(GL_ARRAY_BUFFER, renderer.buffers[Renderer2DBufferType::texturePositions]);
+		glBufferData(GL_ARRAY_BUFFER, renderer.texturePositions.size() * sizeof(glm::vec2), renderer.texturePositions.data(), GL_STREAM_DRAW);
 
 		//Instance render the textures
 		{
-			const int size = spriteTexturesCount;
+			const int size = renderer.spriteTextures.size();
 			int pos = 0;
-			unsigned int id = spriteTextures[0].id;
+			unsigned int id = renderer.spriteTextures[0].id;
 
-			spriteTextures[0].bind();
+			renderer.spriteTextures[0].bind();
 
 			for (int i = 1; i < size; i++)
 			{
-				if (spriteTextures[i].id != id)
+				if (renderer.spriteTextures[i].id != id)
 				{
 					glDrawArrays(GL_TRIANGLES, pos * 6, 6 * (i - pos));
 
 					pos = i;
-					id = spriteTextures[i].id;
+					id = renderer.spriteTextures[i].id;
 
-					spriteTextures[i].bind();
+					renderer.spriteTextures[i].bind();
 				}
 
 			}
@@ -544,25 +556,31 @@ namespace gl2d
 			glBindVertexArray(0);
 		}
 
-		spritePositionsCount = 0;
-		spriteColorsCount = 0;
-		spriteTexturesCount = 0;
-		texturePositionsCount = 0;
+		if (clearDrawData) 
+		{
+			renderer.clearDrawData();
+		}
 	}
 
-	void Renderer2D::flushFBO(FrameBuffer frameBuffer)
+	void gl2d::Renderer2D::flush(bool clearDrawData)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
+		internalFlush(*this, clearDrawData);
+	}
+
+	void Renderer2D::flushFBO(FrameBuffer frameBuffer, bool clearDrawData)
 	{
 		if (frameBuffer.fbo == 0) 
 		{
-			errorFunc("Framebuffer not initialized");
+			errorFunc("Framebuffer not initialized", userDefinedData);
 		}
 
 		glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer.fbo);
-		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindTexture(GL_TEXTURE_2D, 0); //todo investigate and remove
 
-		flush();
+		internalFlush(*this, clearDrawData);
 
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
 	}
 
 	void enableNecessaryGLFeatures()
@@ -575,21 +593,22 @@ namespace gl2d
 
 	///////////////////// Renderer2D - render ///////////////////// 
 
-	void Renderer2D::renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords)
+	void Renderer2D::renderRectangle(const Rect transforms, const Texture texture, const Color4f colors[4], const glm::vec2 origin, const float rotation, const glm::vec4 textureCoords)
 	{
 		glm::vec2 newOrigin;
 		newOrigin.x = origin.x + transforms.x + (transforms.z / 2);
 		newOrigin.y = origin.y + transforms.y + (transforms.w / 2);
-		renderRectangleAbsRotation(transforms, colors, newOrigin, rotation, texture, textureCoords);
+		renderRectangleAbsRotation(transforms, texture, colors, newOrigin, rotation, textureCoords);
 	}
 
-	void gl2d::Renderer2D::renderRectangleAbsRotation(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords)
+	void gl2d::Renderer2D::renderRectangleAbsRotation(const Rect transforms, 
+		const Texture texture, const Color4f colors[4], const glm::vec2 origin, const float rotation, const glm::vec4 textureCoords)
 	{
 		Texture textureCopy = texture;
 
 		if (textureCopy.id == 0)
 		{
-			errorFunc("Invalid texture");
+			errorFunc("Invalid texture", userDefinedData);
 			textureCopy = white1pxSquareTexture;
 		}
 
@@ -657,51 +676,39 @@ namespace gl2d
 		v3.y = internal::positionToScreenCoordsY(v3.y, (float)windowH);
 		v4.y = internal::positionToScreenCoordsY(v4.y, (float)windowH);
 
-		spritePositions[spritePositionsCount++] = glm::vec2{ v1.x, v1.y };
-		spritePositions[spritePositionsCount++] = glm::vec2{ v2.x, v2.y };
-		spritePositions[spritePositionsCount++] = glm::vec2{ v4.x, v4.y };
+		spritePositions.push_back(glm::vec2{ v1.x, v1.y });
+		spritePositions.push_back(glm::vec2{ v2.x, v2.y });
+		spritePositions.push_back(glm::vec2{ v4.x, v4.y });
 
-		spritePositions[spritePositionsCount++] = glm::vec2{ v2.x, v2.y };
-		spritePositions[spritePositionsCount++] = glm::vec2{ v3.x, v3.y };
-		spritePositions[spritePositionsCount++] = glm::vec2{ v4.x, v4.y };
+		spritePositions.push_back(glm::vec2{ v2.x, v2.y });
+		spritePositions.push_back(glm::vec2{ v3.x, v3.y });
+		spritePositions.push_back(glm::vec2{ v4.x, v4.y });
 
-		spriteColors[spriteColorsCount++] = colors[0];
-		spriteColors[spriteColorsCount++] = colors[1];
-		spriteColors[spriteColorsCount++] = colors[3];
-		spriteColors[spriteColorsCount++] = colors[1];
-		spriteColors[spriteColorsCount++] = colors[2];
-		spriteColors[spriteColorsCount++] = colors[3];
+		spriteColors.push_back(colors[0]);
+		spriteColors.push_back(colors[1]);
+		spriteColors.push_back(colors[3]);
+		spriteColors.push_back(colors[1]);
+		spriteColors.push_back(colors[2]);
+		spriteColors.push_back(colors[3]);
 
-		texturePositions[texturePositionsCount++] = glm::vec2{ textureCoords.x, textureCoords.y }; //1
-		texturePositions[texturePositionsCount++] = glm::vec2{ textureCoords.x, textureCoords.w }; //2
-		texturePositions[texturePositionsCount++] = glm::vec2{ textureCoords.z, textureCoords.y }; //4
-		texturePositions[texturePositionsCount++] = glm::vec2{ textureCoords.x, textureCoords.w }; //2
-		texturePositions[texturePositionsCount++] = glm::vec2{ textureCoords.z, textureCoords.w }; //3
-		texturePositions[texturePositionsCount++] = glm::vec2{ textureCoords.z, textureCoords.y }; //4
+		texturePositions.push_back(glm::vec2{ textureCoords.x, textureCoords.y }); //1
+		texturePositions.push_back(glm::vec2{ textureCoords.x, textureCoords.w }); //2
+		texturePositions.push_back(glm::vec2{ textureCoords.z, textureCoords.y }); //4
+		texturePositions.push_back(glm::vec2{ textureCoords.x, textureCoords.w }); //2
+		texturePositions.push_back(glm::vec2{ textureCoords.z, textureCoords.w }); //3
+		texturePositions.push_back(glm::vec2{ textureCoords.z, textureCoords.y }); //4
 
-		spriteTextures[spriteTexturesCount++] = textureCopy;
-	}
-
-	void Renderer2D::renderRectangle(const Rect transforms, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords)
-	{
-		gl2d::Color4f colors[4] = { Colors_White, Colors_White, Colors_White, Colors_White };
-		renderRectangle(transforms, colors, origin, rotation, texture, textureCoords);
-	}
-
-	void Renderer2D::renderRectangleAbsRotation(const Rect transforms, const glm::vec2 origin, const float rotation, const Texture texture, const glm::vec4 textureCoords)
-	{
-		gl2d::Color4f colors[4] = { Colors_White, Colors_White, Colors_White, Colors_White };
-		renderRectangleAbsRotation(transforms, colors, origin, rotation, texture, textureCoords);
+		spriteTextures.push_back(textureCopy);
 	}
 
 	void Renderer2D::renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation)
 	{
-		renderRectangle(transforms, colors, origin, rotation, white1pxSquareTexture);
+		renderRectangle(transforms, white1pxSquareTexture, colors, origin, rotation);
 	}
 
 	void Renderer2D::renderRectangleAbsRotation(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation)
 	{
-		renderRectangleAbsRotation(transforms, colors, origin, rotation, white1pxSquareTexture);
+		renderRectangleAbsRotation(transforms, white1pxSquareTexture, colors, origin, rotation);
 	}
 
 	void Renderer2D::render9Patch(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotation, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords)
@@ -714,7 +721,7 @@ namespace gl2d
 		innerPos.y += borderSize;
 		innerPos.z -= borderSize * 2;
 		innerPos.w -= borderSize * 2;
-		renderRectangle(innerPos, colorData, Position2D{ 0, 0 }, 0, texture, inner_texture_coords);
+		renderRectangle(innerPos, texture, colorData, Position2D{ 0, 0 }, 0, inner_texture_coords);
 
 		//top
 		Rect topPos = position;
@@ -726,7 +733,7 @@ namespace gl2d
 		upperTexPos.y = textureCoords.y;
 		upperTexPos.z = inner_texture_coords.z;
 		upperTexPos.w = inner_texture_coords.y;
-		renderRectangle(topPos, colorData, Position2D{ 0, 0 }, 0, texture, upperTexPos);
+		renderRectangle(topPos, texture, colorData, Position2D{ 0, 0 }, 0, upperTexPos);
 
 		//bottom
 		Rect bottom = position;
@@ -739,7 +746,7 @@ namespace gl2d
 		bottomTexPos.y = inner_texture_coords.w;
 		bottomTexPos.z = inner_texture_coords.z;
 		bottomTexPos.w = textureCoords.w;
-		renderRectangle(bottom, colorData, Position2D{ 0, 0 }, 0, texture, bottomTexPos);
+		renderRectangle(bottom, texture, colorData, Position2D{ 0, 0 }, 0, bottomTexPos);
 
 		//left
 		Rect left = position;
@@ -751,7 +758,7 @@ namespace gl2d
 		leftTexPos.y = inner_texture_coords.y;
 		leftTexPos.z = inner_texture_coords.x;
 		leftTexPos.w = inner_texture_coords.w;
-		renderRectangle(left, colorData, Position2D{ 0, 0 }, 0, texture, leftTexPos);
+		renderRectangle(left, texture, colorData, Position2D{ 0, 0 }, 0, leftTexPos);
 
 		//right
 		Rect right = position;
@@ -764,7 +771,7 @@ namespace gl2d
 		rightTexPos.y = inner_texture_coords.y;
 		rightTexPos.z = textureCoords.z;
 		rightTexPos.w = inner_texture_coords.w;
-		renderRectangle(right, colorData, Position2D{ 0, 0 }, 0, texture, rightTexPos);
+		renderRectangle(right, texture, colorData, Position2D{ 0, 0 }, 0, rightTexPos);
 
 		//topleft
 		Rect topleft = position;
@@ -775,7 +782,7 @@ namespace gl2d
 		topleftTexPos.y = textureCoords.y;
 		topleftTexPos.z = inner_texture_coords.x;
 		topleftTexPos.w = inner_texture_coords.y;
-		renderRectangle(topleft, colorData, Position2D{ 0, 0 }, 0, texture, topleftTexPos);
+		renderRectangle(topleft, texture, colorData, Position2D{ 0, 0 }, 0, topleftTexPos);
 
 		//topright
 		Rect topright = position;
@@ -787,7 +794,7 @@ namespace gl2d
 		toprightTexPos.y = textureCoords.y;
 		toprightTexPos.z = textureCoords.z;
 		toprightTexPos.w = inner_texture_coords.y;
-		renderRectangle(topright, colorData, Position2D{ 0, 0 }, 0, texture, toprightTexPos);
+		renderRectangle(topright, texture, colorData, Position2D{ 0, 0 }, 0, toprightTexPos);
 
 		//bottomleft
 		Rect bottomleft = position;
@@ -799,7 +806,7 @@ namespace gl2d
 		bottomleftTexPos.y = inner_texture_coords.w;
 		bottomleftTexPos.z = inner_texture_coords.x;
 		bottomleftTexPos.w = textureCoords.w;
-		renderRectangle(bottomleft, colorData, Position2D{ 0, 0 }, 0, texture, bottomleftTexPos);
+		renderRectangle(bottomleft, texture, colorData, Position2D{ 0, 0 }, 0, bottomleftTexPos);
 
 		//bottomright
 		Rect bottomright = position;
@@ -812,7 +819,7 @@ namespace gl2d
 		bottomrightTexPos.y = inner_texture_coords.w;
 		bottomrightTexPos.z = textureCoords.z;
 		bottomrightTexPos.w = textureCoords.w;
-		renderRectangle(bottomright, colorData, Position2D{ 0, 0 }, 0, texture, bottomrightTexPos);
+		renderRectangle(bottomright, texture, colorData, Position2D{ 0, 0 }, 0, bottomrightTexPos);
 
 	}
 
@@ -861,7 +868,7 @@ namespace gl2d
 		innerPos.y += topBorder;
 		innerPos.z -= leftBorder + rightBorder;
 		innerPos.w -= topBorder + bottomBorder;
-		renderRectangle(innerPos, colorData, Position2D{ 0, 0 }, 0, texture, inner_texture_coords);
+		renderRectangle(innerPos, texture, colorData, Position2D{ 0, 0 }, 0, inner_texture_coords);
 
 		//top
 		Rect topPos = position;
@@ -873,7 +880,7 @@ namespace gl2d
 		upperTexPos.y = textureCoords.y;
 		upperTexPos.z = inner_texture_coords.z;
 		upperTexPos.w = inner_texture_coords.y;
-		renderRectangle(topPos, colorData, Position2D{ 0, 0 }, 0, texture, upperTexPos);
+		renderRectangle(topPos, texture, colorData, Position2D{ 0, 0 }, 0, upperTexPos);
 
 		//Rect topPos = position;
 		//topPos.x += leftBorder;
@@ -916,7 +923,7 @@ namespace gl2d
 		bottomTexPos.y = inner_texture_coords.w;
 		bottomTexPos.z = inner_texture_coords.z;
 		bottomTexPos.w = textureCoords.w;
-		renderRectangle(bottom, colorData, Position2D{ 0, 0 }, 0, texture, bottomTexPos);
+		renderRectangle(bottom, texture, colorData, Position2D{ 0, 0 }, 0, bottomTexPos);
 
 		//left
 		Rect left = position;
@@ -928,7 +935,7 @@ namespace gl2d
 		leftTexPos.y = inner_texture_coords.y;
 		leftTexPos.z = inner_texture_coords.x;
 		leftTexPos.w = inner_texture_coords.w;
-		renderRectangle(left, colorData, Position2D{ 0, 0 }, 0, texture, leftTexPos);
+		renderRectangle(left, texture, colorData, Position2D{ 0, 0 }, 0, leftTexPos);
 
 		//right
 		Rect right = position;
@@ -941,7 +948,7 @@ namespace gl2d
 		rightTexPos.y = inner_texture_coords.y;
 		rightTexPos.z = textureCoords.z;
 		rightTexPos.w = inner_texture_coords.w;
-		renderRectangle(right, colorData, Position2D{ 0, 0 }, 0, texture, rightTexPos);
+		renderRectangle(right, texture, colorData, Position2D{ 0, 0 }, 0, rightTexPos);
 
 		//topleft
 		Rect topleft = position;
@@ -952,7 +959,7 @@ namespace gl2d
 		topleftTexPos.y = textureCoords.y;
 		topleftTexPos.z = inner_texture_coords.x;
 		topleftTexPos.w = inner_texture_coords.y;
-		renderRectangle(topleft, colorData, Position2D{ 0, 0 }, 0, texture, topleftTexPos);
+		renderRectangle(topleft, texture, colorData, Position2D{ 0, 0 }, 0, topleftTexPos);
 		//repair here?
 
 
@@ -966,7 +973,7 @@ namespace gl2d
 		toprightTexPos.y = textureCoords.y;
 		toprightTexPos.z = textureCoords.z;
 		toprightTexPos.w = inner_texture_coords.y;
-		renderRectangle(topright, colorData, Position2D{ 0, 0 }, 0, texture, toprightTexPos);
+		renderRectangle(topright, texture, colorData, Position2D{ 0, 0 }, 0, toprightTexPos);
 
 		//bottomleft
 		Rect bottomleft = position;
@@ -978,7 +985,7 @@ namespace gl2d
 		bottomleftTexPos.y = inner_texture_coords.w;
 		bottomleftTexPos.z = inner_texture_coords.x;
 		bottomleftTexPos.w = textureCoords.w;
-		renderRectangle(bottomleft, colorData, Position2D{ 0, 0 }, 0, texture, bottomleftTexPos);
+		renderRectangle(bottomleft, texture, colorData, Position2D{ 0, 0 }, 0, bottomleftTexPos);
 
 		//bottomright
 		Rect bottomright = position;
@@ -991,21 +998,24 @@ namespace gl2d
 		bottomrightTexPos.y = inner_texture_coords.w;
 		bottomrightTexPos.z = textureCoords.z;
 		bottomrightTexPos.w = textureCoords.w;
-		renderRectangle(bottomright, colorData, Position2D{ 0, 0 }, 0, texture, bottomrightTexPos);
+		renderRectangle(bottomright, texture, colorData, Position2D{ 0, 0 }, 0, bottomrightTexPos);
 
 	}
 
-	void Renderer2D::create()
+	void Renderer2D::create(GLuint fbo, size_t quadCount)
 	{
 		if (!hasInitialized)
 		{
-			errorFunc("Library not initialized. Have you forgotten to call gl2d::init() ?");
+			errorFunc("Library not initialized. Have you forgotten to call gl2d::init() ?", userDefinedData);
 		}
 
-		spritePositionsCount = 0;
-		spriteColorsCount = 0;
-		texturePositionsCount = 0;
-		spriteTexturesCount = 0;
+		defaultFBO = fbo;
+
+		clearDrawData();
+		spritePositions.reserve(quadCount * 6);
+		spriteColors.reserve(quadCount * 6);
+		texturePositions.reserve(quadCount * 6);
+		spriteTextures.reserve(quadCount);
 
 		this->resetCameraAndShader();
 
@@ -1029,7 +1039,7 @@ namespace gl2d
 		glBindVertexArray(0);
 	}
 
-	void Renderer2D::clear()
+	void Renderer2D::cleanup()
 	{
 		glDeleteVertexArrays(1, &vao);
 		glDeleteBuffers(Renderer2DBufferType::bufferSize, buffers);
@@ -1045,7 +1055,7 @@ namespace gl2d
 	{
 		if (shaderPushPop.empty())
 		{
-			errorFunc("Pop on an empty stack on popShader");
+			errorFunc("Pop on an empty stack on popShader", userDefinedData);
 		}
 		else
 		{
@@ -1064,7 +1074,7 @@ namespace gl2d
 	{
 		if (cameraPushPop.empty())
 		{
-			errorFunc("Pop on an empty stack on popCamera");
+			errorFunc("Pop on an empty stack on popCamera", userDefinedData);
 		}
 		else
 		{
@@ -1144,7 +1154,7 @@ namespace gl2d
 	{
 		if (font.texture.id == 0)
 		{
-			errorFunc("Missing font");
+			errorFunc("Missing font", userDefinedData);
 			return {};
 		}
 
@@ -1226,7 +1236,7 @@ namespace gl2d
 	{
 		if (font.texture.id == 0)
 		{
-			errorFunc("Missing font");
+			errorFunc("Missing font", userDefinedData);
 			return;
 		}
 
@@ -1343,19 +1353,21 @@ namespace gl2d
 					glm::vec2 pos = {-5, 3};
 					pos *= size;
 					renderRectangle({rectangle.x + pos.x, rectangle.y + pos.y,  rectangle.z, rectangle.w},
-						ShadowColor, glm::vec2{0, 0}, 0, font.texture,
+						font.texture, ShadowColor, glm::vec2{0, 0}, 0,
 						glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1});
 
 				}
 
-				renderRectangle(rectangle, colorData, glm::vec2{0, 0}, 0, font.texture, glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1});
+				renderRectangle(rectangle, font.texture, colorData, glm::vec2{0, 0}, 0,
+					glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1});
 
 				if (LightColor.w)
 				{
 					glm::vec2 pos = {-2, 1};
 					pos *= size;
 					renderRectangle({rectangle.x + pos.x, rectangle.y + pos.y,  rectangle.z, rectangle.w},
-						LightColor, glm::vec2{0, 0}, 0, font.texture,
+						font.texture,
+						LightColor, glm::vec2{0, 0}, 0,
 						glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1});
 
 				}
@@ -1368,17 +1380,19 @@ namespace gl2d
 
 	void Renderer2D::clearScreen(const Color4f color)
 	{
+		glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
+	
+		#if GL2D_USE_OPENGL_130
+			GLfloat oldColor[4];
+			glGetFloatv(GL_COLOR_CLEAR_VALUE, oldColor);
 
-	#if GL2D_USE_OPENGL_130
-		GLfloat oldColor[4];
-		glGetFloatv(GL_COLOR_CLEAR_VALUE, oldColor);
+			glClearColor(color.r, color.g, color.b, color.a);
+			glClear(GL_COLOR_BUFFER_BIT);
+			glClearColor(oldColor[0], oldColor[1], oldColor[2], oldColor[3]);
+		#else
+			glClearBufferfv(GL_COLOR, 0, &color[0]);
+		#endif
 
-		glClearColor(color.r, color.g, color.b, color.a);
-		glClear(GL_COLOR_BUFFER_BIT);
-		glClearColor(oldColor[0], oldColor[1], oldColor[2], oldColor[3]);
-	#else
-		glClearBufferfv(GL_COLOR, 0, &color[0]);
-	#endif
 	}
 
 	void Renderer2D::setShaderProgram(const ShaderProgram shader)
@@ -1642,7 +1656,7 @@ namespace gl2d
 			char c[300] = { 0 };
 			strcat(c, "error openning: ");
 			strcat(c + strlen(c), fileName);
-			errorFunc(c);
+			errorFunc(c, userDefinedData);
 			return;
 		}
 
@@ -1670,7 +1684,7 @@ namespace gl2d
 			char c[300] = { 0 };
 			strcat(c, "error openning: ");
 			strcat(c + strlen(c), fileName);
-			errorFunc(c);
+			errorFunc(c, userDefinedData);
 			return;
 		}
 
@@ -1704,16 +1718,16 @@ namespace gl2d
 		glDeleteTextures(1, &id);
 	}
 
-	glm::mat3 Camera::getMatrix()
-	{
-		glm::mat3 m;
-		m = { zoom, 0, position.x ,
-			 0, zoom, position.y,
-			0, 0, 1,
-		};
-		m = glm::transpose(m);
-		return m; //todo not tested, add rotation
-	}
+	//glm::mat3 Camera::getMatrix()
+	//{
+	//	glm::mat3 m;
+	//	m = { zoom, 0, position.x ,
+	//		 0, zoom, position.y,
+	//		0, 0, 1,
+	//	};
+	//	m = glm::transpose(m);
+	//	return m; //todo not tested, add rotation
+	//}
 
 	void Camera::follow(glm::vec2 pos, float speed, float min, float max, float w, float h)
 	{
@@ -1762,29 +1776,29 @@ namespace gl2d
 		}
 	}
 
-	glm::vec2 Camera::convertPoint(const glm::vec2& p, float windowW, float windowH)
+	glm::vec2 internal::convertPoint(const Camera &camera, const glm::vec2& p, float windowW, float windowH)
 	{
 		glm::vec2 r = p;
 
 
 		//Apply camera transformations
-		r.x += this->position.x;
-		r.y += this->position.y;
+		r.x += camera.position.x;
+		r.y += camera.position.y;
 
 		{
-			glm::vec2 cameraCenter = { this->position.x + windowW / 2, -this->position.y - windowH / 2 };
+			glm::vec2 cameraCenter = { camera.position.x + windowW / 2, -camera.position.y - windowH / 2 };
 
 			r = rotateAroundPoint(r,
 				cameraCenter,
-				this->rotation);
+				camera.rotation);
 		}
 
 		{
-			glm::vec2 cameraCenter = { this->position.x + windowW / 2, this->position.y + windowH / 2 };
+			glm::vec2 cameraCenter = { camera.position.x + windowW / 2, camera.position.y + windowH / 2 };
 
 			r = scaleAroundPoint(r,
 				cameraCenter,
-				1.f / zoom);
+				1.f / camera.zoom);
 		}
 
 		//if (this->rotation != 0)

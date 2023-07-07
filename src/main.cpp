@@ -88,22 +88,19 @@ int main()
 
 		renderer->clearScreen();
 
-		//necessary only if you modify gl settings
-		//gl2d::enableNecessaryGLFeatures();
-
-		renderer->renderRectangle({ 100,350, 100, 100 }, { 0,0 }, 0, texture);
+		renderer->renderRectangle({ 100,350, 100, 100 }, texture);
 
 		glm::vec4 colors[4] = { Colors_Orange,Colors_Orange ,Colors_Orange ,Colors_Orange };
 		renderer->renderRectangle({ 10,10, 100, 100 }, colors, {}, 30);
-
-		renderer->renderRectangle({ 100,150, 100, 100 }, { 1,0,0,0.5 }, { 0,0 }, 0.f);
-
+		
+		renderer->renderRectangle({ 100,150, 100, 100 }, { 1,0,0,0.5 });
+		
 		glm::vec4 c[4] = {Colors_Orange, Colors_Orange, Colors_Green, Colors_Blue};
 		renderer->renderRectangle({ 300,300,10,10 }, c);
-
+		
 		renderer->render9Patch2({400, 50, 100, 300}, Colors_White, {}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
 		renderer->render9Patch2({600, 150, 300, 100}, Colors_White, {}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
-
+		
 		if(1) //keyboard
 		for(int i=8;i<255;i++)
 		{
@@ -129,24 +126,24 @@ int main()
 				{
 					text += char(i);
 				}
-
+		
 			}
 		
 		}
-
+		
 		renderer->renderText({0,0}, text.c_str(), f, Colors_White);
-
+		
 		if(0) //test view rect
 		{
 			auto rect = renderer->getViewRect();
-
+		
 			std::cout << rect.x << " " << rect.y << " " << rect.z << " " << rect.w << "\n";
-
+		
 			rect.x += 5;
 			rect.y += 5;
 			rect.z -= 10;
 			rect.w -= 10;
-
+		
 			renderer->renderRectangle(rect, {0.5,0.9,0.6,0.2});
 		}
 
