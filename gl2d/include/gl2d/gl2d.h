@@ -119,6 +119,7 @@ namespace gl2d
 #define Colors_Orange (gl2d::Color4f{ 1, (float)0x7F / 255.0f, 0, 1 })
 #define Colors_Purple (gl2d::Color4f{ 101.0f / 255.0f, 29.0f / 255.0f, 173.0f / 255.0f, 1 })
 #define Colors_Gray (gl2d::Color4f{ (float)0x7F / 255.0f, (float)0x7F / 255.0f, (float)0x7F / 255.0f, 1 })
+#define Colors_Transparent (gl2d::Color4f{ 0,0,0,0 })
 
 #pragma endregion
 
