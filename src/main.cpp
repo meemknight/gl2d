@@ -28,9 +28,8 @@ int main()
 
 	gl2d::setVsync(1);
 
-	//allocate on heap or as a global variable. The object itself holds data directly
-	gl2d::Renderer2D *renderer = new gl2d::Renderer2D;
-	renderer->create();
+	gl2d::Renderer2D renderer; //please just make an instance of the object don't allocate it on heap for no reason.
+	renderer.create();
 	
 	gl2d::Font f(RESOURCES_PATH "roboto_black.ttf");
 	
@@ -56,50 +55,50 @@ int main()
 
 		if (GetAsyncKeyState('W'))
 		{
-			renderer->currentCamera.position.y -= speed * deltaTime;
+			renderer.currentCamera.position.y -= speed * deltaTime;
 		}
 		if (GetAsyncKeyState('S'))
 		{
-			renderer->currentCamera.position.y += speed * deltaTime;
+			renderer.currentCamera.position.y += speed * deltaTime;
 		}
 		if (GetAsyncKeyState('A'))
 		{
-			renderer->currentCamera.position.x -= speed * deltaTime;
+			renderer.currentCamera.position.x -= speed * deltaTime;
 		}
 		if (GetAsyncKeyState('D'))
 		{
-			renderer->currentCamera.position.x += speed * deltaTime;
+			renderer.currentCamera.position.x += speed * deltaTime;
 		}
 		if (GetAsyncKeyState('Q'))
 		{
-			renderer->currentCamera.zoom += 1 * deltaTime;
+			renderer.currentCamera.zoom += 1 * deltaTime;
 		}
 		if (GetAsyncKeyState('E'))
 		{
-			renderer->currentCamera.zoom -= 1 * deltaTime;
+			renderer.currentCamera.zoom -= 1 * deltaTime;
 		}
 #pragma endregion
 
 
 		int w = 0; int h = 0;
 		glfwGetWindowSize(wind, &w, &h);
-		renderer->updateWindowMetrics(w, h);
+		renderer.updateWindowMetrics(w, h);
 
 
-		renderer->clearScreen();
+		renderer.clearScreen();
 
-		renderer->renderRectangle({ 100,350, 100, 100 }, texture);
+		renderer.renderRectangle({ 100,350, 100, 100 }, texture);
 
 		glm::vec4 colors[4] = { Colors_Orange,Colors_Orange ,Colors_Orange ,Colors_Orange };
-		renderer->renderRectangle({ 10,10, 100, 100 }, colors, {}, 30);
+		renderer.renderRectangle({ 10,10, 100, 100 }, colors, {}, 30);
 		
-		renderer->renderRectangle({ 100,150, 100, 100 }, { 1,0,0,0.5 });
+		renderer.renderRectangle({ 100,150, 100, 100 }, { 1,0,0,0.5 });
 		
 		glm::vec4 c[4] = {Colors_Orange, Colors_Orange, Colors_Green, Colors_Blue};
-		renderer->renderRectangle({ 300,300,10,10 }, c);
+		renderer.renderRectangle({ 300,300,10,10 }, c);
 		
-		renderer->render9Patch2({400, 50, 100, 300}, Colors_White, {}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
-		renderer->render9Patch2({600, 150, 300, 100}, Colors_White, {}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
+		renderer.render9Patch2({400, 50, 100, 300}, Colors_White, {}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
+		renderer.render9Patch2({600, 150, 300, 100}, Colors_White, {}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
 		
 		if(1) //keyboard
 		for(int i=8;i<255;i++)
@@ -131,11 +130,11 @@ int main()
 		
 		}
 		
-		renderer->renderText({0,0}, text.c_str(), f, Colors_White);
+		renderer.renderText({0,0}, text.c_str(), f, Colors_White);
 		
 		if(0) //test view rect
 		{
-			auto rect = renderer->getViewRect();
+			auto rect = renderer.getViewRect();
 		
 			std::cout << rect.x << " " << rect.y << " " << rect.z << " " << rect.w << "\n";
 		
@@ -144,10 +143,10 @@ int main()
 			rect.z -= 10;
 			rect.w -= 10;
 		
-			renderer->renderRectangle(rect, {0.5,0.9,0.6,0.2});
+			renderer.renderRectangle(rect, {0.5,0.9,0.6,0.2});
 		}
 
-		renderer->flush();
+		renderer.flush();
 
 #pragma region glfw
 
