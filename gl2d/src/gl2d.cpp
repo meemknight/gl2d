@@ -713,7 +713,8 @@ namespace gl2d
 
 	void Renderer2D::renderLine(const glm::vec2 position, const float angleDegrees, const float length, const Color4f color, const float width)
 	{
-		renderRectangle({position, length, width}, color, {-length/2, 0}, angleDegrees);
+		renderRectangle({position - glm::vec2(0,width / 2.f), length, width},
+			color, {-length/2, 0}, angleDegrees);
 	}
 
 	void Renderer2D::renderLine(const glm::vec2 start, const glm::vec2 end, const Color4f color, const float width) 
@@ -733,18 +734,18 @@ namespace gl2d
 		glm::vec2 bottomLeft = glm::vec2(dimensions) + glm::vec2(0, dimensions.w);
 		glm::vec2 bottomRight = glm::vec2(dimensions) + glm::vec2(dimensions.z, dimensions.w);
 		
-		glm::vec2 p1 = topLeft + glm::vec2(-width / 2.f, -width / 2);
-		glm::vec2 p2 = topRight + glm::vec2(+width / 2.f, -width / 2);
-		glm::vec2 p3 = topRight;
-		glm::vec2 p4 = bottomRight;
-		glm::vec2 p5 = bottomRight + glm::vec2(-width / 2.f, -width / 2);
-		glm::vec2 p6 = bottomLeft + glm::vec2(width / 2.f, -width / 2);
-		glm::vec2 p7 = bottomLeft;
-		glm::vec2 p8 = topLeft;
+		glm::vec2 p1 = topLeft + glm::vec2(-width / 2.f, 0);
+		glm::vec2 p2 = topRight + glm::vec2(+width / 2.f, 0);
+		glm::vec2 p3 = topRight + glm::vec2(0, +width / 2.f);
+		glm::vec2 p4 = bottomRight + glm::vec2(0, -width / 2.f);
+		glm::vec2 p5 = bottomRight + glm::vec2(width / 2.f, 0);
+		glm::vec2 p6 = bottomLeft + glm::vec2(-width / 2.f, 0);
+		glm::vec2 p7 = bottomLeft + glm::vec2(0, -width / 2.f);
+		glm::vec2 p8 = topLeft + glm::vec2(0, +width / 2.f);
 
 		if (rotationDegrees != 0) 
 		{
-			glm::vec2 o = {};
+			glm::vec2 o = origin + glm::vec2(dimensions.x, -dimensions.y) + glm::vec2(dimensions.z, -dimensions.w) / 2.f;
 
 			p1 = rotateAroundPoint(p1, o, -rotationDegrees);
 			p2 = rotateAroundPoint(p2, o, -rotationDegrees);
@@ -755,6 +756,20 @@ namespace gl2d
 			p7 = rotateAroundPoint(p7, o, -rotationDegrees);
 			p8 = rotateAroundPoint(p8, o, -rotationDegrees);
 		}
+
+		auto renderPoint = [&](glm::vec2 pos) 
+		{
+			renderRectangle({pos - glm::vec2(1,1),2,2}, Colors_Black);
+		};
+
+		renderPoint(p1);
+		renderPoint(p2);
+		renderPoint(p3);
+		renderPoint(p4);
+		renderPoint(p5);
+		renderPoint(p6);
+		renderPoint(p7);
+		renderPoint(p8);
 
 		//add a padding so the lines align properly.
 		renderLine(p1, p2, color, width); //top line
