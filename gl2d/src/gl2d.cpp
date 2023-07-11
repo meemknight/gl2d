@@ -45,6 +45,11 @@
 // removed capacity render limit
 // added some more comments
 // 
+// 1.4.1
+// line rendering
+// rect outline rendering
+// circle outline rendering
+// 
 /////////////////////////////////////////////////////////
 
 
@@ -725,14 +730,14 @@ namespace gl2d
 		renderLine(start, -glm::degrees(angle), length, color, width);
 	}
 
-	void Renderer2D::renderRectangleOutline(const glm::vec4 dimensions, const Color4f color, const float width,
+	void Renderer2D::renderRectangleOutline(const glm::vec4 position, const Color4f color, const float width,
 		const glm::vec2 origin, const float rotationDegrees)
 	{
 		
-		glm::vec2 topLeft = dimensions;
-		glm::vec2 topRight = glm::vec2(dimensions) + glm::vec2(dimensions.z, 0);
-		glm::vec2 bottomLeft = glm::vec2(dimensions) + glm::vec2(0, dimensions.w);
-		glm::vec2 bottomRight = glm::vec2(dimensions) + glm::vec2(dimensions.z, dimensions.w);
+		glm::vec2 topLeft = position;
+		glm::vec2 topRight = glm::vec2(position) + glm::vec2(position.z, 0);
+		glm::vec2 bottomLeft = glm::vec2(position) + glm::vec2(0, position.w);
+		glm::vec2 bottomRight = glm::vec2(position) + glm::vec2(position.z, position.w);
 		
 		glm::vec2 p1 = topLeft + glm::vec2(-width / 2.f, 0);
 		glm::vec2 p2 = topRight + glm::vec2(+width / 2.f, 0);
@@ -745,7 +750,7 @@ namespace gl2d
 
 		if (rotationDegrees != 0) 
 		{
-			glm::vec2 o = origin + glm::vec2(dimensions.x, -dimensions.y) + glm::vec2(dimensions.z, -dimensions.w) / 2.f;
+			glm::vec2 o = origin + glm::vec2(position.x, -position.y) + glm::vec2(position.z, -position.w) / 2.f;
 
 			p1 = rotateAroundPoint(p1, o, -rotationDegrees);
 			p2 = rotateAroundPoint(p2, o, -rotationDegrees);
@@ -778,6 +783,40 @@ namespace gl2d
 		renderLine(p7, p8, color, width);
 
 	}
+
+	void  Renderer2D::renderCircleOutline(const glm::vec2 position, const Color4f color, const float size, const float width, const unsigned int segments)
+	{
+	
+		auto calcPos = [&](int p)
+		{
+			glm::vec2 circle = {size,0};
+
+			float a = 3.1415926 * 2 * ((float)p / segments);
+
+			float c = std::cos(a);
+			float s = std::sin(a);
+
+			circle = {c * circle.x - s * circle.y, s * circle.x + c * circle.y};
+
+			return circle + position;
+		};
+
+		
+		glm::vec2 lastPos = calcPos(1);
+		renderLine(calcPos(0), lastPos, color, width);
+		for (int i = 1; i < segments; i++)
+		{
+
+			glm::vec2 pos1 = lastPos;
+			glm::vec2 pos2 = calcPos(i + 1);
+
+			renderLine(pos1, pos2, color, width);
+
+			lastPos = pos2;
+		}
+
+	}
+
 
 
 	void Renderer2D::render9Patch(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotation, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords)

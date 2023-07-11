@@ -447,8 +447,9 @@ namespace gl2d
 
 		void renderLine(const glm::vec2 start, const glm::vec2 end, const Color4f color, const float width = 2.f);
 
-		void renderRectangleOutline(const glm::vec4 dimensions, const Color4f color, const float width = 2.f, const glm::vec2 origin = {}, const float rotationDegrees = 0);
-
+		void renderRectangleOutline(const glm::vec4 position, const Color4f color, const float width = 2.f, const glm::vec2 origin = {}, const float rotationDegrees = 0);
+		
+		void renderCircleOutline(const glm::vec2 position, const Color4f color, const float size, const float width = 2.f, const unsigned int segments = 16);
 
 		//used for ui. draws a texture that scales the margins different so buttons of different sizes can be drawn.
 		void render9Patch(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotationDegrees, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords);

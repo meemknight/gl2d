@@ -108,6 +108,8 @@ int main()
 		renderer.renderRectangleOutline({200,150, 100, 100}, {1,1,1,0.5}, 10, {}, t);
 		renderer.renderRectangle({-1,-1, 2, 2}, Colors_Orange, {}, t);
 
+		renderer.renderCircleOutline({500,200}, Colors_Orange, 100);
+
 
 		//renderer.renderLine({201, 350}, 0, 100, Colors_White, 2.f);
 		if(0)
