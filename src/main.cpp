@@ -85,22 +85,40 @@ int main()
 		renderer.updateWindowMetrics(w, h);
 
 
-		renderer.clearScreen();
+		renderer.clearScreen({0.1,0.2,0.6,1});
 
-		renderer.renderRectangle({ 100,350, 100, 100 }, texture);
 
-		glm::vec4 colors[4] = { Colors_Orange,Colors_Orange ,Colors_Orange ,Colors_Orange };
-		renderer.renderRectangle({ 10,10, 100, 100 }, colors, {}, 30);
+		renderer.renderRectangle({100,350, 100, 100}, texture, {1,1,1,1}, {}, glfwGetTime()*10);
+		renderer.renderRectangleOutline({100,350, 100, 100}, {1,1,1,0.5}, 10, {}, glfwGetTime()*10);
+		renderer.renderRectangle({150,400, 2, 2}, Colors_Orange, {}, glfwGetTime() * 10);
+
+		renderer.renderRectangle({-50,-50, 100, 100}, texture, {1,1,1,1}, {}, glfwGetTime() * 10);
+		renderer.renderRectangleOutline({-50,-50, 100, 100}, {1,1,1,0.5}, 10, {}, glfwGetTime() * 10);
+		renderer.renderRectangle({-1,-1, 2, 2}, Colors_Orange, {}, glfwGetTime() * 10);
+
+
+		//renderer.renderLine({201, 350}, 0, 100, Colors_White, 2.f);
+		if(0)
+		{
+			double x=0, y = 0;
+			glfwGetCursorPos(wind, &x, &y);
+			renderer.renderLine({201, 350}, {x,y}, Colors_White, 2.f);
+		}
+
 		
-		renderer.renderRectangle({ 100,150, 100, 100 }, { 1,0,0,0.5 });
+
+		//glm::vec4 colors[4] = { Colors_Orange,Colors_Orange ,Colors_Orange ,Colors_Orange };
+		//renderer.renderRectangle({ 10,10, 100, 100 }, colors, {}, 30);
 		
-		glm::vec4 c[4] = {Colors_Orange, Colors_Orange, Colors_Green, Colors_Blue};
-		renderer.renderRectangle({ 300,300,10,10 }, c);
+		//renderer.renderRectangle({ 100,150, 100, 100 }, { 1,0,0,0.5 });
+		
+		//glm::vec4 c[4] = {Colors_Orange, Colors_Orange, Colors_Green, Colors_Blue};
+		//renderer.renderRectangle({ 300,300,10,10 }, c);
 		
 		renderer.render9Patch2({400, 50, 100, 300}, Colors_White, {}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
 		renderer.render9Patch2({600, 150, 300, 100}, Colors_White, {}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
 		
-		if(1) //keyboard
+		if(0) //keyboard
 		for(int i=8;i<255;i++)
 		{
 			if(GetAsyncKeyState(i) == -32767 )

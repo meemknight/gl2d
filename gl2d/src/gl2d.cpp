@@ -711,6 +711,60 @@ namespace gl2d
 		renderRectangleAbsRotation(transforms, white1pxSquareTexture, colors, origin, rotation);
 	}
 
+	void Renderer2D::renderLine(const glm::vec2 position, const float angleDegrees, const float length, const Color4f color, const float width)
+	{
+		renderRectangle({position, length, width}, color, {-length/2, 0}, angleDegrees);
+	}
+
+	void Renderer2D::renderLine(const glm::vec2 start, const glm::vec2 end, const Color4f color, const float width) 
+	{
+		glm::vec2 vector = end - start;
+		float length = glm::length(vector);
+		float angle = std::atan2(vector.y, vector.x);
+		renderLine(start, -glm::degrees(angle), length, color, width);
+	}
+
+	void Renderer2D::renderRectangleOutline(const glm::vec4 dimensions, const Color4f color, const float width,
+		const glm::vec2 origin, const float rotationDegrees)
+	{
+		
+		glm::vec2 topLeft = dimensions;
+		glm::vec2 topRight = glm::vec2(dimensions) + glm::vec2(dimensions.z, 0);
+		glm::vec2 bottomLeft = glm::vec2(dimensions) + glm::vec2(0, dimensions.w);
+		glm::vec2 bottomRight = glm::vec2(dimensions) + glm::vec2(dimensions.z, dimensions.w);
+		
+		glm::vec2 p1 = topLeft + glm::vec2(-width / 2.f, -width / 2);
+		glm::vec2 p2 = topRight + glm::vec2(+width / 2.f, -width / 2);
+		glm::vec2 p3 = topRight;
+		glm::vec2 p4 = bottomRight;
+		glm::vec2 p5 = bottomRight + glm::vec2(-width / 2.f, -width / 2);
+		glm::vec2 p6 = bottomLeft + glm::vec2(width / 2.f, -width / 2);
+		glm::vec2 p7 = bottomLeft;
+		glm::vec2 p8 = topLeft;
+
+		if (rotationDegrees != 0) 
+		{
+			glm::vec2 o = {};
+
+			p1 = rotateAroundPoint(p1, o, -rotationDegrees);
+			p2 = rotateAroundPoint(p2, o, -rotationDegrees);
+			p3 = rotateAroundPoint(p3, o, -rotationDegrees);
+			p4 = rotateAroundPoint(p4, o, -rotationDegrees);
+			p5 = rotateAroundPoint(p5, o, -rotationDegrees);
+			p6 = rotateAroundPoint(p6, o, -rotationDegrees);
+			p7 = rotateAroundPoint(p7, o, -rotationDegrees);
+			p8 = rotateAroundPoint(p8, o, -rotationDegrees);
+		}
+
+		//add a padding so the lines align properly.
+		renderLine(p1, p2, color, width); //top line
+		renderLine(p3, p4, color, width);
+		renderLine(p5, p6, color, width); //bottom line
+		renderLine(p7, p8, color, width);
+
+	}
+
+
 	void Renderer2D::render9Patch(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotation, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords)
 	{
 		glm::vec4 colorData[4] = { color, color, color, color };
