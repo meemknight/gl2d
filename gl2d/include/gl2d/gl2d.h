@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-//gl2d.h				1.2.6
+//gl2d.h				1.5.0
 //Copyright(c) 2020 Luta Vlad
 //https://github.com/meemknight/gl2d
 //
@@ -412,6 +412,37 @@ namespace gl2d
 		void renderText(glm::vec2 position, const char *text, const Font font, const Color4f color, const float size = 1.5f,
 			const float spacing = 4, const float line_space = 3, bool showInCenter = 1, const Color4f ShadowColor = {0.1,0.1,0.1,1}
 		, const Color4f LightColor = {});
+
+		//determins the text size so that it fits in the given box,
+		//the x and y components of the transform are ignored
+		float determineTextRescaleFitSmaller(const std::string &str,
+			gl2d::Font &f, glm::vec4 transform, float maxSize);
+
+		//determins the text size so that it fits in the given box,
+		//the x and y components of the transform are ignored
+		float determineTextRescaleFit(const std::string &str,
+			gl2d::Font &f, glm::vec4 transform);
+
+		//returns number of lines
+		//out rez is optional
+		int wrap(const std::string &in, gl2d::Font &f,
+			float baseSize, float maxDimension, std::string *outRez);
+
+		// The origin will be the bottom left corner since it represents the line for the text to be drawn
+		//Pacing and lineSpace are influenced by size
+		//todo the function should returns the size of the text drawn also refactor
+		void renderTextWrapped(const std::string &text,
+			gl2d::Font f, glm::vec4 textPos, glm::vec4 color, float baseSize,
+			float spacing = 4, float lineSpacing = 3,
+			bool showInCenter = true, glm::vec4 shadowColor = {0.1,0.1,0.1,1}, glm::vec4 lightColor = {});
+
+		glm::vec2 getTextSizeWrapped(const std::string &text,
+			gl2d::Font f, float maxTextLenght, float baseSize, float spacing = 4, float lineSpacing = 3);
+
+		//determins the text size so that it fits in the given box,
+		//the x and y components of the transform are ignored
+		float determineTextRescaleFitBigger(const std::string &str,
+			gl2d::Font &f, glm::vec4 transform, float minSize);
 
 		void renderRectangle(const Rect transforms, const Texture texture, const Color4f colors[4], const glm::vec2 origin = {}, const float rotationDegrees = 0.f, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords);
 		inline void renderRectangle(const Rect transforms, const Texture texture, const Color4f colors = {1,1,1,1}, const glm::vec2 origin = {}, const float rotationDegrees = 0, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords)

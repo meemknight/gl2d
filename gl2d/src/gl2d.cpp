@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-//gl2d.cpp				1.2.5
+//gl2d.cpp				1.5.0
 //Copyright(c) 2020 Luta Vlad
 //https://github.com/meemknight/gl2d
 // 
@@ -49,6 +49,10 @@
 // line rendering
 // rect outline rendering
 // circle outline rendering
+// 
+// 1.5.0
+// started to add some more needed text functions
+// needed to be tested tho
 // 
 /////////////////////////////////////////////////////////
 
@@ -1336,6 +1340,192 @@ namespace gl2d
 
 	}
 
+	float Renderer2D::determineTextRescaleFitSmaller(const std::string &str,
+		gl2d::Font &f, glm::vec4 transform, float maxSize)
+	{
+		auto s = getTextSize(str.c_str(), f, maxSize);
+
+		float ratioX = transform.z / s.x;
+		float ratioY = transform.w / s.y;
+
+
+		if (ratioX > 1 && ratioY > 1)
+		{
+			return maxSize;
+		}
+		else
+		{
+			if (ratioX < ratioY)
+			{
+				return maxSize*ratioX;
+			}
+			else
+			{
+				return maxSize * ratioY;
+			}
+		}
+	}
+
+
+	float Renderer2D::determineTextRescaleFitBigger(const std::string &str,
+		gl2d::Font &f, glm::vec4 transform, float minSize)
+	{
+		auto s = getTextSize(str.c_str(), f, minSize);
+
+		float ratioX = transform.z / s.x;
+		float ratioY = transform.w / s.y;
+
+
+		if (ratioX > 1 && ratioY > 1)
+		{
+			if (ratioX > ratioY)
+			{
+				return minSize * ratioY;
+			}
+			else
+			{
+				return minSize * ratioX;
+			}
+		}
+		else
+		{
+			
+		}
+
+		return minSize;
+	
+	}
+
+	float Renderer2D::determineTextRescaleFit(const std::string &str,
+		gl2d::Font &f, glm::vec4 transform)
+	{
+		float ret = 1;
+
+		auto s = getTextSize(str.c_str(), f, ret);
+
+		float ratioX = transform.z / s.x;
+		float ratioY = transform.w / s.y;
+
+
+		if (ratioX > 1 && ratioY > 1)
+		{
+			if (ratioX > ratioY)
+			{
+				return ret * ratioY;
+			}
+			else
+			{
+				return ret * ratioX;
+			}
+		}
+		else
+		{
+			if (ratioX < ratioY)
+			{
+				return ret * ratioX;
+			}
+			else
+			{
+				return ret * ratioY;
+			}
+		}
+
+		return ret;
+	}
+
+	int  Renderer2D::wrap(const std::string &in, gl2d::Font &f,
+		float baseSize, float maxDimension, std::string *outRez)
+	{
+		if (outRez)
+		{
+			*outRez = "";
+			outRez->reserve(in.size() + 10);
+		}
+
+		std::string word = "";
+		std::string currentLine = "";
+		currentLine.reserve(in.size() + 10);
+
+		bool wrap = 0;
+		bool newLine = 1;
+		int newLineCounter = 0;
+
+		for (int i = 0; i < in.size(); i++)
+		{
+			word.push_back(in[i]);
+			currentLine.push_back(in[i]);
+
+			if (in[i] == ' ')
+			{
+				if (wrap)
+				{
+					if (outRez)
+					{
+						outRez->push_back('\n'); currentLine = "";
+					}
+					newLineCounter++;
+
+				}
+
+				if (outRez)
+				{
+					*outRez += word;
+				}
+				word = "";
+				wrap = 0;
+				newLine = false;
+			}
+			else if (in[i] == '\n')
+			{
+				if (wrap)
+				{
+					if (outRez)
+					{
+						outRez->push_back('\n');
+					}
+					newLineCounter++;
+				}
+
+				currentLine = "";
+
+				if (outRez)
+				{
+					*outRez += word;
+				}
+				word = "";
+				wrap = 0;
+				newLine = true;
+			}
+			else
+			{
+				//let's check, only if needed
+				if (!wrap && !newLine)
+				{
+					float size = baseSize;
+					auto textSize = getTextSize(currentLine.c_str(), f, size);
+
+					if (textSize.x >= maxDimension && !newLine)
+					{
+						//wrap last word
+						wrap = 1;
+					}
+				};
+			}
+
+		}
+
+		{
+			if (wrap) { if (outRez)outRez->push_back('\n'); newLineCounter++; }
+
+			if (outRez)
+			{
+				*outRez += word;
+			}
+		}
+
+		return newLineCounter + 1;
+	}
+
 	void Renderer2D::renderText(glm::vec2 position, const char *text, const Font font,
 		const Color4f color, const float size, const float spacing, const float line_space, bool showInCenter,
 		const Color4f ShadowColor
@@ -1484,6 +1674,29 @@ namespace gl2d
 				rectangle.x += rectangle.z + spacing * size;
 			}
 		}
+	}
+
+	void Renderer2D::renderTextWrapped(const std::string &text,
+		gl2d::Font f, glm::vec4 textPos, glm::vec4 color, float baseSize,
+		float spacing, float lineSpacing,
+		bool showInCenter, glm::vec4 shadowColor, glm::vec4 lightColor)
+	{
+		std::string newText;
+		wrap(text, f, baseSize, textPos.z, &newText);
+		renderText(textPos,
+			newText.c_str(), f, color, baseSize, spacing, lineSpacing, showInCenter,
+			shadowColor, lightColor);
+	}
+
+	glm::vec2 Renderer2D::getTextSizeWrapped(const std::string &text,
+		gl2d::Font f, float maxTextLenght, float baseSize, float spacing, float lineSpacing)
+	{
+		std::string newText;
+		wrap(text, f, baseSize, maxTextLenght, &newText);
+		auto rez = getTextSize(
+			newText.c_str(), f, baseSize, spacing, lineSpacing);
+
+		return rez;
 	}
 
 	void Renderer2D::clearScreen(const Color4f color)
