@@ -480,6 +480,12 @@ namespace gl2d
 		delete[] fileData;
 	}
 
+	void Font::cleanup()
+	{
+		texture.cleanup();
+		*this = {};
+	}
+
 
 #pragma endregion
 
@@ -512,6 +518,18 @@ namespace gl2d
 			{
 				renderer.clearDrawData();
 			}
+
+			return;
+		}
+
+		if (renderer.windowH < 0 || renderer.windowW < 0)
+		{
+			if (clearDrawData)
+			{
+				renderer.clearDrawData();
+			}
+
+			errorFunc("Negative windowW or windowH, have you forgotten to call updateWindowMetrics(w, h)?", userDefinedData);
 
 			return;
 		}

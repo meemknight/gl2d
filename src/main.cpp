@@ -33,9 +33,13 @@ int main()
 	
 	gl2d::Font f(RESOURCES_PATH "roboto_black.ttf");
 	
-	
 	gl2d::Texture texture(RESOURCES_PATH "test.jpg");
 	gl2d::Texture button(RESOURCES_PATH "button.png", true, true);
+	
+
+	gl2d::Texture playerSprite;
+	playerSprite.loadFromFileWithPixelPadding(RESOURCES_PATH "sprites.png", 80); //the character is 80 pixels in size
+	gl2d::TextureAtlasPadding atlas(12, 12, playerSprite.GetSize().x, playerSprite.GetSize().y);
 
 	//std::cout << texture.GetSize().x;
 
@@ -47,37 +51,40 @@ int main()
 	while (!glfwWindowShouldClose(wind))
 	{
 
-#pragma region movement
+	#pragma region movement
 
 		long newTime = GetTickCount();
 		float deltaTime = (float)(newTime - lastTime) / 1000.f;
 		lastTime = GetTickCount();
 
-		if (GetAsyncKeyState('W'))
+		if (1)
 		{
-			renderer.currentCamera.position.y -= speed * deltaTime;
-		}
-		if (GetAsyncKeyState('S'))
-		{
-			renderer.currentCamera.position.y += speed * deltaTime;
-		}
-		if (GetAsyncKeyState('A'))
-		{
-			renderer.currentCamera.position.x -= speed * deltaTime;
-		}
-		if (GetAsyncKeyState('D'))
-		{
-			renderer.currentCamera.position.x += speed * deltaTime;
-		}
-		if (GetAsyncKeyState('Q'))
-		{
-			renderer.currentCamera.zoom += 1 * deltaTime;
-		}
-		if (GetAsyncKeyState('E'))
-		{
-			renderer.currentCamera.zoom -= 1 * deltaTime;
-		}
-#pragma endregion
+			if (GetAsyncKeyState('W'))
+			{
+				renderer.currentCamera.position.y -= speed * deltaTime;
+			}
+			if (GetAsyncKeyState('S'))
+			{
+				renderer.currentCamera.position.y += speed * deltaTime;
+			}
+			if (GetAsyncKeyState('A'))
+			{
+				renderer.currentCamera.position.x -= speed * deltaTime;
+			}
+			if (GetAsyncKeyState('D'))
+			{
+				renderer.currentCamera.position.x += speed * deltaTime;
+			}
+			if (GetAsyncKeyState('E'))
+			{
+				renderer.currentCamera.zoom += 1 * deltaTime;
+			}
+			if (GetAsyncKeyState('Q'))
+			{
+				renderer.currentCamera.zoom -= 1 * deltaTime;
+			}
+		};
+	#pragma endregion
 
 
 		int w = 0; int h = 0;
@@ -88,37 +95,61 @@ int main()
 		renderer.clearScreen({0.1,0.2,0.6,1});
 
 
-		
-		static float pos;
-		if (GetAsyncKeyState('O'))
+		//render shapes and outlines
+		if (1)
 		{
-			pos += deltaTime * 20;;
+			static float r;
+			if (GetAsyncKeyState('O'))
+			{
+				r += deltaTime * 20;;
+			}
+			if (GetAsyncKeyState('P'))
+			{
+				r -= deltaTime * 20;
+			}
+
+			renderer.renderRectangle({100,350, 100, 100}, texture, {1,1,1,1}, {}, r);
+			renderer.renderRectangleOutline({100,350, 100, 100}, {1,1,1,0.5}, 10, {}, r);
+			
+			renderer.renderRectangle({200,150, 100, 100}, texture, {1,1,1,1}, {}, r);
+			renderer.renderRectangleOutline({200,150, 100, 100}, {1,1,1,0.5}, 10, {}, r);
+
+			renderer.renderRectangle({250,450, 100, 100}, Colors_Orange, {}, r);
+
+			renderer.renderCircleOutline({500,200}, Colors_Orange, 100);
 		}
-		if (GetAsyncKeyState('P'))
+
+		//texture atlases
+		if (0)
 		{
-			pos -= deltaTime * 20;
+			static int pos = 0;
+			static float timer = 0;
+			
+			timer += deltaTime;
+			if (timer > 0.08)
+			{
+				timer -= 0.08;
+				pos++;
+			}
+			
+			pos %= 7;
+
+			renderer.renderRectangle({100,100,200,200}, playerSprite,
+				Colors_White, {}, 0, atlas.get(1 + pos , 0));
+
 		}
-		float t = pos;
-
-		renderer.renderRectangle({100,350, 100, 100}, texture, {1,1,1,1}, {}, t);
-		renderer.renderRectangleOutline({100,350, 100, 100}, {1,1,1,0.5}, 10, {}, t);
-		renderer.renderRectangle({150,400, 2, 2}, Colors_Orange, {}, t);
-
-		renderer.renderRectangle({200,150, 100, 100}, texture, {1,1,1,1}, {}, t);
-		renderer.renderRectangleOutline({200,150, 100, 100}, {1,1,1,0.5}, 10, {}, t);
-		renderer.renderRectangle({-1,-1, 2, 2}, Colors_Orange, {}, t);
-
-		renderer.renderCircleOutline({500,200}, Colors_Orange, 100);
 
 
-		//renderer.renderLine({201, 350}, 0, 100, Colors_White, 2.f);
-		if(0)
+		//render lines example
+		if (0)
 		{
-			double x=0, y = 0;
+			double x = 0, y = 0;
 			glfwGetCursorPos(wind, &x, &y);
 			renderer.renderLine({201, 350}, {x,y}, Colors_White, 10.f);
+			renderer.renderLine({201, 350}, 0, 100, Colors_White, 2.f);
 		}
 
+		//render lines example
 		if (0)
 		{
 			renderer.renderLine({201, 350}, {300, 650}, Colors_White, 10.f);
@@ -126,50 +157,76 @@ int main()
 			renderer.renderRectangle({300, 650, 2,2}, Colors_Orange);
 		}
 
-		//glm::vec4 colors[4] = { Colors_Orange,Colors_Orange ,Colors_Orange ,Colors_Orange };
-		//renderer.renderRectangle({ 10,10, 100, 100 }, colors, {}, 30);
-		
-		//renderer.renderRectangle({ 100,150, 100, 100 }, { 1,0,0,0.5 });
-		
-		//glm::vec4 c[4] = {Colors_Orange, Colors_Orange, Colors_Green, Colors_Blue};
-		//renderer.renderRectangle({ 300,300,10,10 }, c);
-		
-		//renderer.render9Patch2({400, 50, 100, 300}, Colors_White, {}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
-		//renderer.render9Patch2({600, 150, 300, 100}, Colors_White, {}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
-		
-		if(0) //keyboard
-		for(int i=8;i<255;i++)
+		//gradients and transparency
+		if (0)
 		{
-			if(GetAsyncKeyState(i) == -32767 )
+			glm::vec4 colors[4] = {Colors_Orange,Colors_Orange ,Colors_Orange ,Colors_Orange};
+			renderer.renderRectangle({90,90, 100, 100}, colors, {}, 30);
+
+			renderer.renderRectangle({100,150, 100, 100}, {1,0,0,0.5});
+
+			glm::vec4 c[4] = {Colors_Orange, Colors_Orange, Colors_Green, Colors_Blue};
+			renderer.renderRectangle({300,300,100,100}, c);
+		}
+
+		//9 patches (for UI)
+		if (0)
+		{
+			renderer.renderRectangle({50,50,100,100}, button);
+
+			renderer.render9Patch2({50,160,100,190}, Colors_White,
+				{}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
+
+			renderer.render9Patch2({200, 50, 100, 300}, Colors_White, 
+				{}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
+
+			renderer.render9Patch2({400, 150, 300, 100}, Colors_White, 
+				{}, 0, button, GL2D_DefaultTextureCoords, {0.2,0.8,0.8,0.2});
+		}
+
+		//render text example
+		if (0) 
+		{
+
+			//keyboard
+			for (int i = 8; i < 255; i++)
 			{
-			
-				if(i == VK_BACK)
+				if (GetAsyncKeyState(i) == -32767)
 				{
-					if(text.length())
-					text = std::string(text.begin(), text.end() - 1);
+
+					if (i == VK_BACK)
+					{
+						if (text.length())
+							text = std::string(text.begin(), text.end() - 1);
+					}
+					else if (i == VK_SPACE)
+					{
+						text += ' ';
+					}
+					else if (i == VK_RETURN)
+					{
+						text += '\n';
+					}
+					else if (i == VK_OEM_3)
+					{
+						text += '`';
+					}
+					else
+					{
+						text += char(i);
+					}
+
 				}
-				else if (i == VK_SPACE)
-				{
-					text += ' ';
-				}else if (i == VK_RETURN)
-				{
-					text += '\n';
-				}else if(i == VK_OEM_3)
-				{
-					text += '`';
-				}
-				else
-				{
-					text += char(i);
-				}
-		
+
 			}
-		
+
+			renderer.renderText({300,100}, "Hello world", f, Colors_White);
+			renderer.renderText({0,0}, text.c_str(), f, Colors_White);
+
 		}
 		
-		//renderer.renderText({0,0}, text.c_str(), f, Colors_White);
-		
-		if(0) //test view rect
+		//test view rect
+		if(0) 
 		{
 			auto rect = renderer.getViewRect();
 		

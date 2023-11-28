@@ -249,6 +249,7 @@ namespace gl2d
 		void createFromTTF(const unsigned char *ttf_data, const size_t ttf_data_size);
 		void createFromFile(const char *file);
 
+		void cleanup();
 	};
 
 
@@ -382,8 +383,8 @@ namespace gl2d
 
 
 		//window metrics, should be up to date at all times
-		int windowW = 0;
-		int windowH = 0;
+		int windowW = -1;
+		int windowH = -1;
 		void updateWindowMetrics(int w, int h) { windowW = w; windowH = h; }
 
 		//converts pixels to screen (top left) (bottom right)
@@ -413,12 +414,12 @@ namespace gl2d
 			const float spacing = 4, const float line_space = 3, bool showInCenter = 1, const Color4f ShadowColor = {0.1,0.1,0.1,1}
 		, const Color4f LightColor = {});
 
-		//determins the text size so that it fits in the given box,
+		//determines the text size so that it fits in the given box,
 		//the x and y components of the transform are ignored
 		float determineTextRescaleFitSmaller(const std::string &str,
 			gl2d::Font &f, glm::vec4 transform, float maxSize);
 
-		//determins the text size so that it fits in the given box,
+		//determines the text size so that it fits in the given box,
 		//the x and y components of the transform are ignored
 		float determineTextRescaleFit(const std::string &str,
 			gl2d::Font &f, glm::vec4 transform);
@@ -439,7 +440,7 @@ namespace gl2d
 		glm::vec2 getTextSizeWrapped(const std::string &text,
 			gl2d::Font f, float maxTextLenght, float baseSize, float spacing = 4, float lineSpacing = 3);
 
-		//determins the text size so that it fits in the given box,
+		//determines the text size so that it fits in the given box,
 		//the x and y components of the transform are ignored
 		float determineTextRescaleFitBigger(const std::string &str,
 			gl2d::Font &f, glm::vec4 transform, float minSize);
@@ -482,8 +483,10 @@ namespace gl2d
 		
 		void renderCircleOutline(const glm::vec2 position, const Color4f color, const float size, const float width = 2.f, const unsigned int segments = 16);
 
-		//used for ui. draws a texture that scales the margins different so buttons of different sizes can be drawn.
+		//legacy, use render9Patch2
 		void render9Patch(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotationDegrees, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords);
+
+		//used for ui. draws a texture that scales the margins different so buttons of different sizes can be drawn.
 		void render9Patch2(const Rect position, const Color4f color, const glm::vec2 origin, const float rotationDegrees, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords);
 
 		void clearScreen(const Color4f color = Color4f{0,0,0,0});
