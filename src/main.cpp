@@ -28,7 +28,7 @@ int main()
 
 	gl2d::setVsync(1);
 
-	gl2d::Renderer2D renderer; //please just make an instance of the object don't allocate it on heap for no reason.
+	gl2d::Renderer2D renderer; //please just make an instance of the object don't allocate it on heap for no reason :D
 	renderer.create();
 	
 	gl2d::Font f(RESOURCES_PATH "roboto_black.ttf");

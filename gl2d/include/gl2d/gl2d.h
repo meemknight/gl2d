@@ -303,6 +303,9 @@ namespace gl2d
 	//using the texture member.
 	struct FrameBuffer
 	{
+		FrameBuffer() {};
+		explicit FrameBuffer(unsigned int w, unsigned int h) { create(w, h); };
+
 		unsigned int fbo = 0;
 		Texture texture = {};
 
@@ -326,7 +329,6 @@ namespace gl2d
 		bufferSize
 	};
 
-	typedef struct Renderer2D Renderer2D;
 	struct Renderer2D
 	{
 		Renderer2D() {};
