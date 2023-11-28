@@ -44,8 +44,9 @@
 #define GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS true
 
 
-//version of the shading language. this is the minimum but you can go lower if you modify the shader code with minimal effort
-#define GL2D_OPNEGL_SHADER_VERSION "#version 130"
+//version of the shading language.
+//#version 130 is minimum, #version 330 is right now so it can run on MacOS
+#define GL2D_OPNEGL_SHADER_VERSION "#version 330"
 #define GL2D_OPNEGL_SHADER_PRECISION "precision highp float;"
 
 //this is the default capacity of the renderer
