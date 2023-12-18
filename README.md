@@ -13,7 +13,15 @@ Call gl2d::init();
 Create a renderer class.
 Update its window size if the window size changed
 
-Check out the [wiki](https://github.com/meemknight/gl2d/wiki)!
+## Check out the [wiki](https://github.com/meemknight/gl2d/wiki)!
+
+---
+
+## Check out other "extensions"
+
+* [Menus and submenus library](https://github.com/meemknight/glui)
+
+## Or check out my [3D rendering library](https://github.com/meemknight/gl3d)!
 
 ---
 
