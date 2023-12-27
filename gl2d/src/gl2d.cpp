@@ -54,6 +54,10 @@
 // started to add some more needed text functions
 // needed to be tested tho
 // 
+// 1.5.1
+// fixed the follow function
+// 
+// 
 /////////////////////////////////////////////////////////
 
 
@@ -2096,7 +2100,7 @@ namespace gl2d
 			{
 				len = max;
 				position = pos - (max * delta);
-				position += delta * speed;
+				//osition += delta * speed;
 			}
 			else
 			{
@@ -2110,7 +2114,7 @@ namespace gl2d
 			bool signY2 = delta.y >= 0;
 			if (signX2 != signX || signY2 != signY || glm::length(delta2) > len)
 			{
-				position = pos;
+				//position = pos;
 			}
 		}
 	}
