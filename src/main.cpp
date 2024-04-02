@@ -12,12 +12,14 @@ int main()
 
 	// Initialize gl2d
 	gl2d::init();
+
+
 	gl2d::Renderer2D renderer;
 	renderer.create();
 
 	// Load resources example
 	//gl2d::Font font(RESOURCES_PATH "roboto_black.ttf");
-	//gl2d::Texture texture(RESOURCES_PATH "test.jpg");
+	gl2d::Texture texture(RESOURCES_PATH "test.jpg");
 
 	// Main loop
 	while (!glfwWindowShouldClose(window))
@@ -34,8 +36,8 @@ int main()
 		renderer.clearScreen({0.1, 0.2, 0.6, 1});
 
 		// Render objects
-		renderer.renderRectangle({100, 250, 100, 100}, Colors_White, {}, 0);
-		//renderer.renderRectangle({100, 100, 100, 100}, texture, Colors_White, {}, 0);
+		renderer.renderRectangle({100, 250, 100, 100}, Colors_Orange, {}, 0);
+		renderer.renderRectangle({100, 100, 100, 100}, texture, Colors_White, {}, 0);
 		// Add more rendering here...
 
 		// Flush renderer (dump your rendering into the screen)
@@ -44,7 +46,7 @@ int main()
 		// Swap buffers and poll events
 		glfwSwapBuffers(window);
 		glfwPollEvents();
-	}
+	} 
 
 	//cleanup if you want, no need for it here tho.
 	return 0;

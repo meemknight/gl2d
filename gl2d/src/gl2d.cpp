@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////
-//gl2d.cpp				1.5.0
-//Copyright(c) 2020 Luta Vlad
+//gl2d.cpp				1.5.2
+//Copyright(c) 2020 - 2024 Luta Vlad
 //https://github.com/meemknight/gl2d
 // 
 //notes: 
@@ -57,6 +57,8 @@
 // 1.5.1
 // fixed the follow function
 // 
+// 1.5.2
+// read texture data + report error if opengl not loaded
 // 
 /////////////////////////////////////////////////////////
 
@@ -234,6 +236,14 @@ namespace gl2d
 	{
 		if (hasInitialized) { return; }
 		hasInitialized = true;
+
+		if (!glGenTextures)
+		{
+			errorFunc("OpenGL doesn't \
+seem to be initialized, have you forgotten to call gladLoadGL() \
+or gladLoadGLLoader() or glewInit()?", userDefinedData);
+		}
+
 
 		//int last = 0;
 		//glGetIntegerv(GL_NUM_EXTENSIONS, &last);
@@ -1768,6 +1778,8 @@ namespace gl2d
 	void Texture::createFromBuffer(const char* image_data, const int width, const int height
 		,bool pixelated, bool useMipMaps)
 	{
+		cleanup();
+
 		GLuint id = 0;
 
 		glActiveTexture(GL_TEXTURE0);
@@ -2045,6 +2057,54 @@ namespace gl2d
 
 	}
 
+	size_t Texture::getMemorySize(int mipLevel, glm::ivec2 *outSize)
+	{
+		glBindTexture(GL_TEXTURE_2D, id);
+
+		glm::ivec2 stub = {};
+
+		if (!outSize)
+		{
+			outSize = &stub;
+		}
+
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, mipLevel, GL_TEXTURE_WIDTH, &outSize->x);
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, mipLevel, GL_TEXTURE_HEIGHT, &outSize->y);
+		
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		return outSize->x * outSize->y * 4;
+	}
+
+	void Texture::readTextureData(void *buffer, int mipLevel)
+	{
+		glBindTexture(GL_TEXTURE_2D, id);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+	}
+
+	std::vector<unsigned char> Texture::readTextureData(int mipLevel, glm::ivec2 *outSize)
+	{
+		glBindTexture(GL_TEXTURE_2D, id);
+
+		glm::ivec2 stub = {};
+
+		if (!outSize)
+		{
+			outSize = &stub;
+		}
+
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, mipLevel, GL_TEXTURE_WIDTH, &outSize->x);
+		glGetTexLevelParameteriv(GL_TEXTURE_2D, mipLevel, GL_TEXTURE_HEIGHT, &outSize->y);
+
+		std::vector<unsigned char> data;
+		data.resize(outSize->x * outSize->y * 4);
+		glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, data.data());
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		return data;
+	}
+
 	void Texture::bind(const unsigned int sample)
 	{
 		glActiveTexture(GL_TEXTURE0 + sample);
@@ -2059,6 +2119,7 @@ namespace gl2d
 	void Texture::cleanup()
 	{
 		glDeleteTextures(1, &id);
+		*this = {};
 	}
 
 	//glm::mat3 Camera::getMatrix()

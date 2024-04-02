@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////
-//gl2d.h				1.5.1
-//Copyright(c) 2020 Luta Vlad
+//gl2d.h				1.5.2
+//Copyright(c) 2020 - 2024 Luta Vlad
 //https://github.com/meemknight/gl2d
 //
 //	dependences: glew(or any loader you want to use), glm, stb_image, stb_trueType
@@ -40,6 +40,7 @@
 //if this is true it will use opengl130. If not it will use fome functionality from opengl3.
 #define GL2D_USE_OPENGL_130 false
 
+//this is how the library should load textures by default.
 #define GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED false
 #define GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS true
 
@@ -174,6 +175,23 @@ namespace gl2d
 		//To be used with texture atlas padding to get the texture coordonates.
 		void loadFromFileWithPixelPadding(const char* fileName, int blockSize,
 			bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED, bool useMipMaps = GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS);
+
+
+		//returns how much memory does the texture take (bytes),
+		//used for allocating your buffer when using readTextureData
+		//you can also optionally get the width and the height of the texture using outSize
+		size_t getMemorySize(int mipLevel = 0, glm::ivec2 *outSize = 0);
+
+		//readt the texture data back into RAM, you need to specify
+		//the buffer to read into yourself, allocate it using
+		//getMemorySize to know the size in bytes.
+		//The data will be in RGBA format, one byte each component
+		void readTextureData(void *buffer, int mipLevel = 0);
+
+		//readt the texture data back into RAM
+		//The data will be in RGBA format, one byte each component
+		//You can also optionally get the width and the height of the texture using outSize
+		std::vector<unsigned char> readTextureData(int mipLevel = 0, glm::ivec2 *outSize = 0);
 
 		void bind(const unsigned int sample = 0);
 		void unbind();
