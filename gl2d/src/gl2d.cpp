@@ -1778,8 +1778,6 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 	void Texture::createFromBuffer(const char* image_data, const int width, const int height
 		,bool pixelated, bool useMipMaps)
 	{
-		cleanup();
-
 		GLuint id = 0;
 
 		glActiveTexture(GL_TEXTURE0);
