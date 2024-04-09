@@ -92,21 +92,24 @@ namespace gl2d
 	{
 		GLuint id = 0;
 		int u_sampler = 0;
+
+		void bind() { glUseProgram(id); };
+
+		void clear() { glDeleteProgram(id); *this = {}; }
 	};
 
 	ShaderProgram createShaderProgram(const char *vertex, const char *fragment);
 
-	struct PostProcessShader 
-	{
-		GLuint id = 0;
-		int u_sampler = 0;
-		int u_time = 0;
+	ShaderProgram createShaderFromFile(const char *filePath);
 
-	};
+	ShaderProgram createShader(const char *fragment);
 
-	PostProcessShader createPostProcessShaderFromFile(const char *filePath);
+	//the only diufference between a normal shader and a post process shader,
+	//is that that post process loads a vertex shader that doesn't acces color or texture uv,
+	//it just renders to the entire screen, and passes the texture position to the fragment.
+	ShaderProgram createPostProcessShaderFromFile(const char *filePath);
 
-	PostProcessShader createPostProcessShader(const char *fragment);
+	ShaderProgram createPostProcessShader(const char *fragment);
 
 #pragma endregion
 
@@ -537,7 +540,7 @@ namespace gl2d
 		void resetCameraAndShader();
 
 		//the framebuffer needs to have the same size as the input
-		void renderPostProcessSameSize(PostProcessShader shader, Texture input, FrameBuffer result = {});
+		void renderPostProcessSameSize(ShaderProgram shader, Texture input, FrameBuffer result = {});
 
 		//Only when this function is called it draws to the screen the things rendered.
 		//If clearDrawData is false, the rendering information will be kept.

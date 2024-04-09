@@ -109,11 +109,13 @@ namespace gl2d
 		"in vec2 texturePositions;\n"
 		"out vec4 v_color;\n"
 		"out vec2 v_texture;\n"
+		"out vec2 v_positions;\n"
 		"void main()\n"
 		"{\n"
 		"	gl_Position = vec4(quad_positions, 0, 1);\n"
 		"	v_color = quad_colors;\n"
 		"	v_texture = texturePositions;\n"
+		"	v_positions = gl_Position.xy;\n"
 		"}\n";
 
 	static const char* defaultFragmentShader =
@@ -133,10 +135,14 @@ namespace gl2d
 		GL2D_OPNEGL_SHADER_PRECISION "\n"
 		"in vec2 quad_positions;\n"
 		"out vec2 v_positions;\n"
+		"out vec2 v_texture;\n"
+		"out vec4 v_color;\n"
 		"void main()\n"
 		"{\n"
 		"	gl_Position = vec4(quad_positions, 0, 1);\n"
-		"	v_positions = (quad_positions + vec2(1,1))/2.0;\n"
+		"	v_positions = gl_Position.xy;\n"
+		"	v_color = vec4(1,1,1,1);\n"
+		"	v_texture = (gl_Position.xy + vec2(1))/2.f;\n"
 		"}\n";
 
 #pragma endregion
@@ -284,7 +290,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 	void clearnup()
 	{
 		white1pxSquareTexture.cleanup();
-		glDeleteShader(defaultShader.id);
+		defaultShader.clear();
 		hasInitialized = false;
 	}
 
@@ -380,7 +386,39 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		return shader;
 	}
 
-	PostProcessShader createPostProcessShaderFromFile(const char *filePath)
+	ShaderProgram createShaderFromFile(const char *filePath)
+	{
+		std::ifstream fileFont(filePath, std::ios::binary);
+
+		if (!fileFont.is_open())
+		{
+			std::string e = "error openning: "; e += filePath;
+			errorFunc(e.c_str(), userDefinedData);
+			return {};
+		}
+
+		int fileSize = 0;
+		fileFont.seekg(0, std::ios::end);
+		fileSize = (int)fileFont.tellg();
+		fileFont.seekg(0, std::ios::beg);
+		char *fileData = new char[fileSize + 1]; //null terminated
+		fileFont.read((char *)fileData, fileSize);
+		fileFont.close();
+		fileData[fileSize] = 0; //null terminated
+
+		auto rez = createShader(fileData);
+
+		delete[] fileData;
+
+		return rez;
+	}
+
+	ShaderProgram createShader(const char *fragment)
+	{
+		return createShaderProgram(defaultVertexShader, fragment);
+	}
+
+	ShaderProgram createPostProcessShaderFromFile(const char *filePath)
 	{
 		std::ifstream fileFont(filePath, std::ios::binary);
 
@@ -407,30 +445,9 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		return rez;
 	}
 
-	PostProcessShader createPostProcessShader(const char *fragment)
+	ShaderProgram createPostProcessShader(const char *fragment)
 	{
-		PostProcessShader shader = {0};
-
-		const GLuint vertexId = internal::loadShader(defaultVertexPostProcessShader, GL_VERTEX_SHADER);
-		const GLuint fragmentId = internal::loadShader(fragment, GL_FRAGMENT_SHADER);
-
-		shader.id = glCreateProgram();
-		glAttachShader(shader.id, vertexId);
-		glAttachShader(shader.id, fragmentId);
-
-		glBindAttribLocation(shader.id, 0, "quad_positions");
-
-		glLinkProgram(shader.id);
-
-		glDeleteShader(vertexId);
-		glDeleteShader(fragmentId);
-
-		validateProgram(shader.id);
-
-		shader.u_sampler = glGetUniformLocation(shader.id, "u_sampler");
-		shader.u_time = glGetUniformLocation(shader.id, "u_time");
-
-		return shader;
+		return createShaderProgram(defaultVertexPostProcessShader, fragment);
 	}
 
 #pragma endregion
@@ -1933,7 +1950,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		currentShader = defaultShader;
 	}
 
-	void Renderer2D::renderPostProcessSameSize(PostProcessShader shader, 
+	void Renderer2D::renderPostProcessSameSize(ShaderProgram shader, 
 		Texture input, FrameBuffer result)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, result.fbo);
@@ -1969,11 +1986,6 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 		glUseProgram(shader.id);
 		glUniform1i(shader.u_sampler, 0);
-
-		if (shader.u_time)
-		{
-			//todo
-		}
 
 		input.bind();
 

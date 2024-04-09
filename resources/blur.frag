@@ -17,7 +17,7 @@ void main()
 		for(int j=-3; j<=3; j++)
 		{
 			rez += texture2D(u_sampler, 
-				v_positions + texelSize*vec2(i,j)).rgb * (1.f / 49.f);
+				(v_positions + vec2(1.f))/2.f + texelSize*vec2(i,j)).rgb * (1.f / 49.f);
 		}
 
 	color = vec4(rez,1);
