@@ -26,7 +26,19 @@ int main()
 	// Load resources example
 	//gl2d::Font font(RESOURCES_PATH "roboto_black.ttf");
 	gl2d::Texture texture(RESOURCES_PATH "test.jpg");
+	gl2d::Texture background(RESOURCES_PATH "background.png");
 
+	glm::ivec2 backgroundSize = background.GetSize();
+
+	
+	//postProcess = gl2d::createPostProcessShaderFromFile(RESOURCES_PATH "defaultPostProcess.frag");
+	auto blur = gl2d::createPostProcessShaderFromFile(RESOURCES_PATH "blur.frag");
+	auto removeColors = gl2d::createPostProcessShaderFromFile(RESOURCES_PATH "removeColors.frag");
+	gl2d::FrameBuffer fbo;
+	gl2d::FrameBuffer fbo2;
+
+	fbo.create(1, 1);
+	fbo2.create(1, 1);
 
 	// Main loop
 	while (!glfwWindowShouldClose(window))
@@ -36,20 +48,38 @@ int main()
 		int w = 0; int h = 0;
 		glfwGetWindowSize(window, &w, &h);
 		renderer.updateWindowMetrics(w, h);
+		fbo.resize(w, h);
+		fbo2.resize(w, h);
+
 
 
 		// Handle input and update
 
 		// Clear screen
-		renderer.clearScreen({0.1, 0.2, 0.6, 1});
+		renderer.clearScreen({0, 0, 0, 1});
+		fbo.clear();
+		fbo2.clear();
 
 		// Render objects
+		renderer.renderRectangle({0, 0, backgroundSize}, background);
+		
 		renderer.renderRectangle({100, 250, 100, 100}, Colors_Orange, {}, 0);
 		renderer.renderRectangle({100, 100, 100, 100}, texture, Colors_White, {}, 0);
+		renderer.renderRectangle({400, 200, 100, 100}, texture, Colors_White, {}, 0);
 		// Add more rendering here...
 
-		// Flush renderer (dump your rendering into the screen)
-		renderer.flush();
+
+		renderer.flushFBO(fbo);
+
+		renderer.renderPostProcessSameSize(blur, fbo.texture, fbo2);
+
+		renderer.renderPostProcessSameSize(removeColors, fbo2.texture, fbo);
+		
+		renderer.renderFrameBufferToTheEntireScreen(fbo);
+
+
+		//renderer.renderRectangle({0,0,w,h},fbo.texture);
+		//renderer.flush();
 
 		// Swap buffers and poll events
 		glfwSwapBuffers(window);

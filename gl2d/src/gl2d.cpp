@@ -128,6 +128,17 @@ namespace gl2d
 		"    color = v_color * texture2D(u_sampler, v_texture);\n"
 		"}\n";
 
+	static const char *defaultVertexPostProcessShader =
+		GL2D_OPNEGL_SHADER_VERSION "\n"
+		GL2D_OPNEGL_SHADER_PRECISION "\n"
+		"in vec2 quad_positions;\n"
+		"out vec2 v_positions;\n"
+		"void main()\n"
+		"{\n"
+		"	gl_Position = vec4(quad_positions, 0, 1);\n"
+		"	v_positions = (quad_positions + vec2(1,1))/2.0;\n"
+		"}\n";
+
 #pragma endregion
 
 	static errorFuncType* errorFunc = defaultErrorFunc;
@@ -318,6 +329,30 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 	///////////////////// Shader /////////////////////
 #pragma region shader
 
+	void validateProgram(GLuint id)
+	{
+		int info = 0;
+		glGetProgramiv(id, GL_LINK_STATUS, &info);
+
+		if (info != GL_TRUE)
+		{
+			char *message = 0;
+			int   l = 0;
+
+			glGetProgramiv(id, GL_INFO_LOG_LENGTH, &l);
+
+			message = new char[l];
+
+			glGetProgramInfoLog(id, l, &l, message);
+
+			errorFunc(message, userDefinedData);
+
+			delete[] message;
+		}
+
+		glValidateProgram(id);
+	}
+
 	ShaderProgram createShaderProgram(const char *vertex, const char *fragment)
 	{
 		ShaderProgram shader = {0};
@@ -338,28 +373,62 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		glDeleteShader(vertexId);
 		glDeleteShader(fragmentId);
 
-		int info = 0;
-		glGetProgramiv(shader.id, GL_LINK_STATUS, &info);
-
-		if (info != GL_TRUE)
-		{
-			char *message = 0;
-			int   l = 0;
-
-			glGetProgramiv(shader.id, GL_INFO_LOG_LENGTH, &l);
-
-			message = new char[l];
-
-			glGetProgramInfoLog(shader.id, l, &l, message);
-
-			errorFunc(message, userDefinedData);
-
-			delete[] message;
-		}
-
-		glValidateProgram(shader.id);
+		validateProgram(shader.id);
 
 		shader.u_sampler = glGetUniformLocation(shader.id, "u_sampler");
+
+		return shader;
+	}
+
+	PostProcessShader createPostProcessShaderFromFile(const char *filePath)
+	{
+		std::ifstream fileFont(filePath, std::ios::binary);
+
+		if (!fileFont.is_open())
+		{
+			std::string e = "error openning: "; e += filePath;
+			errorFunc(e.c_str(), userDefinedData);
+			return {};
+		}
+
+		int fileSize = 0;
+		fileFont.seekg(0, std::ios::end);
+		fileSize = (int)fileFont.tellg();
+		fileFont.seekg(0, std::ios::beg);
+		char *fileData = new char[fileSize+1]; //null terminated
+		fileFont.read((char *)fileData, fileSize);
+		fileFont.close();
+		fileData[fileSize] = 0; //null terminated
+
+		auto rez = createPostProcessShader(fileData);
+
+		delete[] fileData;
+
+		return rez;
+	}
+
+	PostProcessShader createPostProcessShader(const char *fragment)
+	{
+		PostProcessShader shader = {0};
+
+		const GLuint vertexId = internal::loadShader(defaultVertexPostProcessShader, GL_VERTEX_SHADER);
+		const GLuint fragmentId = internal::loadShader(fragment, GL_FRAGMENT_SHADER);
+
+		shader.id = glCreateProgram();
+		glAttachShader(shader.id, vertexId);
+		glAttachShader(shader.id, fragmentId);
+
+		glBindAttribLocation(shader.id, 0, "quad_positions");
+
+		glLinkProgram(shader.id);
+
+		glDeleteShader(vertexId);
+		glDeleteShader(fragmentId);
+
+		validateProgram(shader.id);
+
+		shader.u_sampler = glGetUniformLocation(shader.id, "u_sampler");
+		shader.u_time = glGetUniformLocation(shader.id, "u_time");
 
 		return shader;
 	}
@@ -519,11 +588,15 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		if (!hasInitialized)
 		{
 			errorFunc("Library not initialized. Have you forgotten to call gl2d::init() ?", userDefinedData);
+			renderer.clearDrawData();
+			return;
 		}
 
 		if (!renderer.vao)
 		{
 			errorFunc("Renderer not initialized. Have you forgotten to call gl2d::Renderer2D::create() ?", userDefinedData);
+			renderer.clearDrawData();
+			return;
 		}
 
 		if (renderer.windowH == 0 || renderer.windowW == 0)
@@ -614,6 +687,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		if (frameBuffer.fbo == 0) 
 		{
 			errorFunc("Framebuffer not initialized", userDefinedData);
+			return;
 		}
 
 		glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer.fbo);
@@ -622,6 +696,101 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		internalFlush(*this, clearDrawData);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
+	}
+
+	void Renderer2D::renderFrameBufferToTheEntireScreen(gl2d::FrameBuffer fbo, gl2d::FrameBuffer screen)
+	{
+		renderTextureToTheEntireScreen(fbo.texture, screen);
+	}
+
+	//doesn't bind or unbind stuff, except the vertex array,
+	//doesn't set the viewport
+	void renderQuadToScreenInternal(gl2d::Renderer2D &renderer)
+	{
+		static float positions[12] = {
+		-1, 1,
+		-1, -1,
+		1, 1,
+
+		1, 1,
+		-1, -1,
+		1, -1,};
+
+		//not used
+		static float colors[6 * 4] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,};
+		static float texCoords[12] = {
+			0, 1,
+			0, 0,
+			1, 1,
+
+			1, 1,
+			0, 0,
+			1, 0,
+		};
+
+
+		glBindVertexArray(renderer.vao);
+
+
+		glBindBuffer(GL_ARRAY_BUFFER, renderer.buffers[Renderer2DBufferType::quadPositions]);
+		glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(glm::vec2), positions, GL_STREAM_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, renderer.buffers[Renderer2DBufferType::quadColors]);
+		glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(glm::vec4), colors, GL_STREAM_DRAW);
+
+		glBindBuffer(GL_ARRAY_BUFFER, renderer.buffers[Renderer2DBufferType::texturePositions]);
+		glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(glm::vec2), texCoords, GL_STREAM_DRAW);
+
+		{
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+		}
+	}
+
+	void Renderer2D::renderTextureToTheEntireScreen(gl2d::Texture t, gl2d::FrameBuffer screen)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, screen.fbo);
+
+		enableNecessaryGLFeatures();
+
+		if (!hasInitialized)
+		{
+			errorFunc("Library not initialized. Have you forgotten to call gl2d::init() ?", userDefinedData);
+			return;
+		}
+
+		if (!vao)
+		{
+			errorFunc("Renderer not initialized. Have you forgotten to call gl2d::Renderer2D::create() ?", userDefinedData);
+			return;
+		}
+
+		if (!currentShader.id)
+		{
+			errorFunc("Post Process Shader not created.", userDefinedData);
+			return;
+		}
+
+		glm::ivec2 size = {windowW, windowH};
+
+		if (screen.fbo) 
+		{
+			size = screen.texture.GetSize();
+		}
+		if (size.x == 0 || size.y == 0)
+		{
+			return;
+		}
+
+		glViewport(0, 0, size.x, size.y);
+
+		glUseProgram(currentShader.id);
+		glUniform1i(currentShader.u_sampler, 0);
+		t.bind();
+
+		renderQuadToScreenInternal(*this);
+
+		glBindVertexArray(0);
+
 	}
 
 	void enableNecessaryGLFeatures()
@@ -1762,6 +1931,57 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 	{
 		currentCamera = defaultCamera;
 		currentShader = defaultShader;
+	}
+
+	void Renderer2D::renderPostProcessSameSize(PostProcessShader shader, 
+		Texture input, FrameBuffer result)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, result.fbo);
+
+		enableNecessaryGLFeatures();
+
+		if (!hasInitialized)
+		{
+			errorFunc("Library not initialized. Have you forgotten to call gl2d::init() ?", userDefinedData);
+			return;
+		}
+
+		if (!vao)
+		{
+			errorFunc("Renderer not initialized. Have you forgotten to call gl2d::Renderer2D::create() ?", userDefinedData);
+			return;
+		}
+
+		if (!shader.id)
+		{
+			errorFunc("Post Process Shader not created.", userDefinedData);
+			return;
+		}
+
+		auto size = input.GetSize();
+
+		if (size.x == 0 || size.y == 0)
+		{
+			return;
+		}
+
+		glViewport(0, 0, size.x, size.y);
+
+		glUseProgram(shader.id);
+		glUniform1i(shader.u_sampler, 0);
+
+		if (shader.u_time)
+		{
+			//todo
+		}
+
+		input.bind();
+
+		renderQuadToScreenInternal(*this);
+
+		glBindVertexArray(0);
+
+	
 	}
 
 #pragma endregion
