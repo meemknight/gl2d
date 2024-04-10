@@ -1,4 +1,4 @@
-//////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////
 //gl2d.cpp				1.5.2
 //Copyright(c) 2020 - 2024 Luta Vlad
 //https://github.com/meemknight/gl2d
@@ -60,13 +60,15 @@
 // 1.5.2
 // read texture data + report error if opengl not loaded
 // 
-/////////////////////////////////////////////////////////
+// 1.6.0
+// Added post processing API + Improvements in custom shaders usage
+// 
+////////////////////////////////////////////////////////////////////////
 
 
 //	todo
 //
 //	add particle demo
-//	shaders demo
 //	add matrices transforms
 //	flags for vbos
 //	
@@ -810,6 +812,92 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 	}
 
+	void Renderer2D::flushPostProcess(const std::vector<ShaderProgram> &postProcesses,
+		FrameBuffer frameBuffer, bool clearDrawData)
+	{
+
+		if (postProcesses.empty())
+		{
+			if (clearDrawData)
+			{
+				this->clearDrawData();
+				return;
+			}
+		}
+
+		if (!postProcessFbo1.fbo) { postProcessFbo1.create(0,0); }
+
+		postProcessFbo1.resize(windowW, windowH);
+		postProcessFbo1.clear();
+
+		flushFBO(postProcessFbo1, clearDrawData);
+
+		internalPostProcessFlip = 1;
+		postProcessOverATexture(postProcesses, postProcessFbo1.texture, frameBuffer);
+
+	}
+
+	void Renderer2D::postProcessOverATexture(const std::vector<ShaderProgram> &postProcesses, 
+		gl2d::Texture in,
+		FrameBuffer frameBuffer)
+	{
+		if (postProcesses.empty())
+			{return;}
+
+
+		if (!postProcessFbo1.fbo) { postProcessFbo1.create(0, 0); }
+		if (!postProcessFbo2.fbo && postProcesses.size() > 1)
+			{ postProcessFbo2.create(0, 0); }
+		
+		if (internalPostProcessFlip == 0) 
+		{
+			postProcessFbo1.resize(windowW, windowH);
+			postProcessFbo1.clear();
+			postProcessFbo2.resize(windowW, windowH);
+			postProcessFbo2.clear();
+		}
+		else if(postProcessFbo2.fbo)
+		{
+			//postProcessFbo1 has already been resized
+			postProcessFbo2.resize(windowW, windowH);
+			postProcessFbo2.clear();
+		}
+
+		for (int i = 0; i < postProcesses.size(); i++)
+		{
+			gl2d::FrameBuffer output;
+			gl2d::Texture input;
+
+			if (internalPostProcessFlip == 0)
+			{
+				input = postProcessFbo2.texture;
+				output = postProcessFbo1;
+			}
+			else
+			{
+				input = postProcessFbo1.texture;
+				output = postProcessFbo2;
+			}
+
+			if (i == 0)
+			{
+				input = in;
+			}
+
+			if (i == postProcesses.size() - 1)
+			{
+				output = frameBuffer;
+			}
+			output.clear();
+			
+			renderPostProcess(postProcesses[i], input, output);
+			internalPostProcessFlip = !internalPostProcessFlip;
+		}
+
+
+		internalPostProcessFlip = 0;
+	}
+
 	void enableNecessaryGLFeatures()
 	{
 		glEnable(GL_BLEND);
@@ -1373,6 +1461,10 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 	{
 		glDeleteVertexArrays(1, &vao);
 		glDeleteBuffers(Renderer2DBufferType::bufferSize, buffers);
+
+		postProcessFbo1.cleanup();
+		postProcessFbo2.cleanup();
+		internalPostProcessFlip = 0;
 	}
 
 	void Renderer2D::pushShader(ShaderProgram s)
@@ -1950,7 +2042,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		currentShader = defaultShader;
 	}
 
-	void Renderer2D::renderPostProcessSameSize(ShaderProgram shader, 
+	void Renderer2D::renderPostProcess(ShaderProgram shader, 
 		Texture input, FrameBuffer result)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, result.fbo);

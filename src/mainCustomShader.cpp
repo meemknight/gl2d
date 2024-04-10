@@ -9,16 +9,9 @@ int main()
 	GLFWwindow *window = glfwCreateWindow(840, 640, "Window", nullptr, nullptr);
 	glfwMakeContextCurrent(window);
 	gladLoadGLLoader((GLADloadproc)(glfwGetProcAddress));
-	
-	//I set the version to test if my library still works with older versions, but you don't
-	//need to care about that
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// Initialize gl2d
 	gl2d::init();
-
 
 	gl2d::Renderer2D renderer;
 	renderer.create();

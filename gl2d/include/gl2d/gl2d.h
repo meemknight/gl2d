@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-//gl2d.h				1.5.2
+//gl2d.h				1.6.0
 //Copyright(c) 2020 - 2024 Luta Vlad
 //https://github.com/meemknight/gl2d
 //
@@ -11,7 +11,7 @@
 //		texture transparency
 //	draw text with font and shadows
 //	camera
-//	shaders
+//	custom shaders + post processing effects!
 //	setVsync
 //	texture atlases and loading textures with \
 //		padding to fix visual bugs when using \
@@ -19,6 +19,7 @@
 //	draw to screen of frame buffer that	can \
 //		be used as a texture
 //
+// 
 //	a particle system that can use a custom \
 //	shader and apply a pixelate effect
 //
@@ -539,8 +540,8 @@ namespace gl2d
 		//will reset on the current stack
 		void resetCameraAndShader();
 
-		//the framebuffer needs to have the same size as the input
-		void renderPostProcessSameSize(ShaderProgram shader, Texture input, FrameBuffer result = {});
+		//The framebuffer need to have the same size as the input!
+		void renderPostProcess(ShaderProgram shader, Texture input, FrameBuffer result = {});
 
 		//Only when this function is called it draws to the screen the things rendered.
 		//If clearDrawData is false, the rendering information will be kept.
@@ -555,6 +556,20 @@ namespace gl2d
 
 		void renderTextureToTheEntireScreen(gl2d::Texture t, gl2d::FrameBuffer screen = {});
 
+		gl2d::FrameBuffer postProcessFbo1 = {};
+		gl2d::FrameBuffer postProcessFbo2 = {};
+		
+		//internal use
+		bool internalPostProcessFlip = 0;
+
+		//the FBO size should be equal to the current configured w and h of the renderer
+		void flushPostProcess(const std::vector<ShaderProgram> &postProcesses, 
+			FrameBuffer frameBuffer = {}, bool clearDrawData = true);
+
+		//the FBO size should be equal to the current configured w and h of the renderer
+		void postProcessOverATexture(const std::vector<ShaderProgram> &postProcesses,
+			gl2d::Texture in,
+			FrameBuffer frameBuffer = {});
 	};
 
 	void enableNecessaryGLFeatures();

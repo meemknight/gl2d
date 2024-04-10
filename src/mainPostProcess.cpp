@@ -31,8 +31,7 @@ int main()
 	glm::ivec2 backgroundSize = background.GetSize();
 
 
-	//todo merge shader and post process shader into one.
-	auto default = gl2d::createPostProcessShaderFromFile(RESOURCES_PATH "defaultPostProcess.frag");
+	//auto default = gl2d::createPostProcessShaderFromFile(RESOURCES_PATH "defaultPostProcess.frag");
 	auto blur = gl2d::createPostProcessShaderFromFile(RESOURCES_PATH "blur.frag");
 	auto removeColors = gl2d::createPostProcessShaderFromFile(RESOURCES_PATH "removeColors.frag");
 	gl2d::FrameBuffer fbo;
@@ -70,15 +69,30 @@ int main()
 		// Add more rendering here...
 
 
-		renderer.flushFBO(fbo);
+		//let the library handle it for you
+		renderer.flushPostProcess({blur, removeColors});
 		
-		renderer.renderPostProcessSameSize(blur, fbo.texture, fbo2);
-		
-		renderer.renderPostProcessSameSize(removeColors, fbo2.texture, fbo);
-		
-		renderer.renderFrameBufferToTheEntireScreen(fbo);
+
+		//you can also post process a texture and render it onto another fbo or the screen!
+		//renderer.flushFBO(fbo);
+		//renderer.postProcessOverATexture({blur, removeColors}, fbo.texture);
 
 
+		//manually doing it version 1
+		//renderer.flushFBO(fbo);
+		//renderer.renderPostProcess(blur, fbo.texture, fbo2);
+		//renderer.renderPostProcess(removeColors, fbo2.texture, {});
+
+		//manually doing it version 2
+		//renderer.flushFBO(fbo);
+		//renderer.renderPostProcess(blur, fbo.texture, fbo2);
+		//renderer.renderPostProcess(removeColors, fbo2.texture, fbo);
+		//renderer.renderFrameBufferToTheEntireScreen(fbo);
+
+		//manually doing it version 3
+		//renderer.flushFBO(fbo);
+		//renderer.renderPostProcess(blur, fbo.texture, fbo2);
+		//renderer.renderPostProcess(removeColors, fbo2.texture, fbo);
 		//renderer.renderRectangle({0,0,w,h},fbo.texture);
 		//renderer.flush();
 

@@ -1,4 +1,4 @@
-#version 330
+#version 130
 precision highp float;
 
 out vec4 color;

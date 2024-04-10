@@ -1,4 +1,4 @@
-#version 330
+#version 130
 precision highp float;
 
 out vec4 color;
@@ -11,6 +11,7 @@ uniform sampler2D u_sampler;
 
 void main()
 {
-    //color = texture2D(u_sampler, (v_positions + vec2(1.f))/2.f).rgba;
-    color = texture2D(u_sampler, v_texture).rgba;
+	//both ways work the same for a post processing shader
+	//color = texture2D(u_sampler, (v_positions + vec2(1.f))/2.f).rgba;
+	color = texture2D(u_sampler, v_texture).rgba;
 }
