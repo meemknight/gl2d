@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-//gl2d.h				1.6.0
+//gl2d.h				1.6.1
 //Copyright(c) 2020 - 2024 Luta Vlad
 //https://github.com/meemknight/gl2d
 //

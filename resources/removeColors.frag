@@ -16,5 +16,4 @@ void main()
 	color.rgb *= u_strength;		
 	color.rgb = floor(color.rgb);
 	color.rgb /= u_strength;
-
 }

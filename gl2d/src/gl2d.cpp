@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////
-//gl2d.cpp				1.5.2
+//gl2d.cpp				1.6.1
 //Copyright(c) 2020 - 2024 Luta Vlad
 //https://github.com/meemknight/gl2d
 // 
@@ -62,6 +62,9 @@
 // 
 // 1.6.0
 // Added post processing API + Improvements in custom shaders usage
+// 
+// 1.6.1
+// trying to fix some text stuff
 // 
 ////////////////////////////////////////////////////////////////////////
 
@@ -831,7 +834,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		postProcessFbo1.clear();
 
 		flushFBO(postProcessFbo1, clearDrawData);
-
+		
 		internalPostProcessFlip = 1;
 		postProcessOverATexture(postProcesses, postProcessFbo1.texture, frameBuffer);
 
@@ -1854,6 +1857,14 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		float linePositionY = position.y;
 
 		if (showInCenter)
+		{
+			auto textSize = this->getTextSize(text, font, size, spacing, line_space);
+
+			position.x -= textSize.x / 2.f;
+			position.y += textSize.y / 2.f;
+		}
+
+		if (0)
 		{
 			//This is the y position we render at because it advances when we encounter newlines
 
