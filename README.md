@@ -40,6 +40,6 @@ features:
 - [x] frame buffers
 - [x] particle system (with a post-process effect to make it look lo poly)
 - [x] add cmake
-
+- [x] post process effects!
 
 
