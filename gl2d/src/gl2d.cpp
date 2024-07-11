@@ -292,7 +292,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		enableNecessaryGLFeatures();
 	}
 
-	void clearnup()
+	void cleanup()
 	{
 		white1pxSquareTexture.cleanup();
 		defaultShader.clear();

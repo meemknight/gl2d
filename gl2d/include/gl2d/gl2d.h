@@ -68,7 +68,7 @@ namespace gl2d
 	void init();
 
 	//Deinitializes the library.
-	void clearnup();
+	void cleanup();
 
 	//The default error function, it writes to the console.
 	void defaultErrorFunc(const char* msg, void *userDefinedData);
