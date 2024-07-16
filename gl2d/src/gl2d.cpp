@@ -72,8 +72,10 @@
 //	todo
 //
 //	add particle demo
+//	refactor particle system to woth with the new post process api
 //	add matrices transforms
 //	flags for vbos
+//	add render circle
 //	
 //
 
@@ -1097,7 +1099,9 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 	}
 
-	void  Renderer2D::renderCircleOutline(const glm::vec2 position, const Color4f color, const float size, const float width, const unsigned int segments)
+	void  Renderer2D::renderCircleOutline(const glm::vec2 position,
+		const float size, const Color4f color,
+		const float width, const unsigned int segments)
 	{
 	
 		auto calcPos = [&](int p)

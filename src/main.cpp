@@ -43,6 +43,7 @@ int main()
 		// Clear screen
 		renderer.clearScreen({0.1, 0.2, 0.6, 1});
 
+
 		// Render objects
 		renderer.renderRectangle({100, 250, 100, 100}, Colors_Orange, {}, 0);
 		renderer.renderRectangle({100, 100, 100, 100}, texture, Colors_White, {}, 0);

@@ -524,7 +524,7 @@ namespace gl2d
 
 		void renderRectangleOutline(const glm::vec4 position, const Color4f color, const float width = 2.f, const glm::vec2 origin = {}, const float rotationDegrees = 0);
 		
-		void renderCircleOutline(const glm::vec2 position, const Color4f color, const float size, const float width = 2.f, const unsigned int segments = 16);
+		void renderCircleOutline(const glm::vec2 position, const float size, const Color4f color, const float width = 2.f, const unsigned int segments = 16);
 
 		//legacy, use render9Patch2
 		void render9Patch(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotationDegrees, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords);
