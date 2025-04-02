@@ -1679,7 +1679,8 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 		paddY += font.max_height * size + bonusY;
 
-		paddY = ((lineCount - 1) * font.max_height + (lineCount - 1) * line_space + firstLineSize) * size;
+		//paddY = ((lineCount-1) * font.max_height + (lineCount - 1) * line_space + firstLineSize) * size;
+		paddY = ((lineCount)*font.max_height + (lineCount - 1) * line_space) * size;
 
 		return glm::vec2{paddX, paddY};
 
