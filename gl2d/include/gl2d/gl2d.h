@@ -478,11 +478,11 @@ namespace gl2d
 		//todo the function should returns the size of the text drawn also refactor
 		void renderTextWrapped(const std::string &text,
 			gl2d::Font f, glm::vec4 textPos, glm::vec4 color, float baseSize,
-			float spacing = 4, float lineSpacing = 3,
+			float spacing = 4, float lineSpacing = 0,
 			bool showInCenter = true, glm::vec4 shadowColor = {0.1,0.1,0.1,1}, glm::vec4 lightColor = {});
 
 		glm::vec2 getTextSizeWrapped(const std::string &text,
-			gl2d::Font f, float maxTextLenght, float baseSize, float spacing = 4, float lineSpacing = 3);
+			gl2d::Font f, float maxTextLenght, float baseSize, float spacing = 4, float lineSpacing = 0);
 
 		//determines the text size so that it fits in the given box,
 		//the x and y components of the transform are ignored
