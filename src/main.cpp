@@ -24,7 +24,7 @@ int main()
 	renderer.create();
 
 	// Load resources example
-	//gl2d::Font font(RESOURCES_PATH "roboto_black.ttf");
+	gl2d::Font font(RESOURCES_PATH "roboto_black.ttf", false);
 	gl2d::Texture texture(RESOURCES_PATH "test.jpg");
 
 
@@ -47,7 +47,14 @@ int main()
 		// Render objects
 		renderer.renderRectangle({100, 250, 100, 100}, Colors_Orange, {}, 0);
 		renderer.renderRectangle({100, 100, 100, 100}, texture, Colors_White, {}, 0);
+
+		renderer.renderText({500, 500}, "####\n####\n####", font, Colors_White, 64, 4, 0, true);
+		renderer.renderRectangle({500, 500, 4, 4}, Colors_Red, {}, 0);
+
 		// Add more rendering here...
+
+
+
 
 		// Flush renderer (dump your rendering into the screen)
 		renderer.flush();

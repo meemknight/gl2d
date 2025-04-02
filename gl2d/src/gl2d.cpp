@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////////
-//gl2d.cpp				1.6.1
-//Copyright(c) 2020 - 2024 Luta Vlad
+//gl2d.cpp				1.6.2
+//Copyright(c) 2020 - 2025 Luta Vlad
 //https://github.com/meemknight/gl2d
 // 
 //notes: 
@@ -65,6 +65,9 @@
 // 
 // 1.6.1
 // trying to fix some text stuff
+//
+// 1.6.2
+// finally fixed font rendering problems
 // 
 ////////////////////////////////////////////////////////////////////////
 
@@ -494,14 +497,27 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 	///////////////////// Font /////////////////////
 #pragma	region Font
 
-	void Font::createFromTTF(const unsigned char *ttf_data, const size_t ttf_data_size)
+	void Font::createFromTTF(const unsigned char *ttf_data, const size_t ttf_data_size,
+		bool monospaced)
 	{
-		size.x = 2000,
-		size.y = 2000,
-		max_height = 0,
+		this->monospaced = monospaced;
+
+		size.x = 2000;
+		size.y = 2000;
+		max_height = 0;
 		packedCharsBufferSize = ('~' - ' ');
 
-		//STB TrueType will give us a one channel buffer of the font that we then convert to RGBA for OpenGL
+		// Initialize stbtt_fontinfo to get font metrics
+		stbtt_fontinfo fontInfo;
+		stbtt_InitFont(&fontInfo, ttf_data, stbtt_GetFontOffsetForIndex(ttf_data, 0));
+
+		int ascent, descent, lineGap;
+		stbtt_GetFontVMetrics(&fontInfo, &ascent, &descent, &lineGap);
+
+		float scale = stbtt_ScaleForPixelHeight(&fontInfo, 64); // Match font size used in PackFontRange
+		max_height = (ascent - descent + lineGap) * scale;
+
+		// STB TrueType will give us a one channel buffer of the font that we then convert to RGBA for OpenGL
 		const size_t fontMonochromeBufferSize = size.x * size.y;
 		const size_t fontRgbaBufferSize = size.x * size.y * 4;
 
@@ -513,55 +529,45 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		stbtt_pack_context stbtt_context;
 		stbtt_PackBegin(&stbtt_context, fontMonochromeBuffer, size.x, size.y, 0, 2, NULL);
 		stbtt_PackSetOversampling(&stbtt_context, 2, 2);
-		stbtt_PackFontRange(&stbtt_context, ttf_data, 0, 65, ' ', '~' - ' ', packedCharsBuffer);
+		stbtt_PackFontRange(&stbtt_context, ttf_data, 0, 64, ' ', '~' - ' ', packedCharsBuffer);
 		stbtt_PackEnd(&stbtt_context);
 
+		// Convert monochrome buffer to RGBA
 		for (int i = 0; i < fontMonochromeBufferSize; i++)
 		{
-
 			fontRgbaBuffer[(i * 4)] = fontMonochromeBuffer[i];
 			fontRgbaBuffer[(i * 4) + 1] = fontMonochromeBuffer[i];
 			fontRgbaBuffer[(i * 4) + 2] = fontMonochromeBuffer[i];
-
-			if (fontMonochromeBuffer[i] > 1)
-			{
-				fontRgbaBuffer[(i * 4) + 3] = 255;
-			}
-			else
-			{
-				fontRgbaBuffer[(i * 4) + 3] = 0;
-			}
+			fontRgbaBuffer[(i * 4) + 3] = fontMonochromeBuffer[i] > 1 ? 255 : 0;
 		}
 
-		//Init texture
-		{
-			glGenTextures(1, &texture.id);
-			glBindTexture(GL_TEXTURE_2D, texture.id);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, fontRgbaBuffer);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		// Init texture
+		glGenTextures(1, &texture.id);
+		glBindTexture(GL_TEXTURE_2D, texture.id);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, size.x, size.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, fontRgbaBuffer);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		}
+
+		//if (monospaced)
+		//{
+		//	for (char c = ' '; c <= '~'; c++)
+		//	{
+		//		stbtt_packedchar &glyph = packedCharsBuffer[c - ' '];
+		//		float charWidth = glyph.x1 - glyph.x0;
+		//		if (charWidth > max_height)
+		//			max_height = charWidth;
+		//	}
+		//}
+
 
 		delete[] fontMonochromeBuffer;
 		delete[] fontRgbaBuffer;
-
-		for (char c = ' '; c <= '~'; c++)
-		{
-			const stbtt_aligned_quad  q = internal::fontGetGlyphQuad(*this, c);
-			const float               m = q.y1 - q.y0;
-
-			if (m > max_height && m < 1.e+8f)
-			{
-				max_height = m;
-			}
-		}
-
 	}
 
-	void Font::createFromFile(const char *file)
+	void Font::createFromFile(const char *file, bool monospaced)
 	{
 		std::ifstream fileFont(file, std::ios::binary);
 
@@ -582,7 +588,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		fileFont.read((char *)fileData, fileSize);
 		fileFont.close();
 
-		createFromTTF(fileData, fileSize);
+		createFromTTF(fileData, fileSize, monospaced);
 
 		delete[] fileData;
 	}
@@ -1579,13 +1585,15 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 	}
 
 	glm::vec2 Renderer2D::getTextSize(const char *text, const Font font,
-		const float size, const float spacing, const float line_space)
+		const float sizePixels, const float spacing, const float line_space)
 	{
 		if (font.texture.id == 0)
 		{
 			errorFunc("Missing font", userDefinedData);
 			return {};
 		}
+		
+		float size = sizePixels / 64.f;
 
 		glm::vec2 position = {};
 
@@ -1594,10 +1602,13 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		rectangle.x = position.x;
 		float linePositionY = position.y;
 
+		if (text_length == 0) { return {}; }
+
 		//This is the y position we render at because it advances when we encounter newlines
 		float maxPos = 0;
 		float maxPosY = 0;
 		float bonusY = 0;
+		int lineCount = 1;
 
 		for (int i = 0; i < text_length; i++)
 		{
@@ -1607,21 +1618,16 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 				linePositionY += (font.max_height + line_space) * size;
 				bonusY += (font.max_height + line_space) * size;
 				maxPosY = 0;
+				lineCount++;
 			}
 			else if (text[i] == '\t')
 			{
-				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-				(font, '_');
-				auto x = quad.x1 - quad.x0;
-
-				rectangle.x += x * size * 3 + spacing * size;
+				float x = font.max_height;
+				rectangle.x += (x + spacing) * size * 3;
 			}
 			else if (text[i] == ' ')
 			{
-				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-				(font, '_');
-				auto x = quad.x1 - quad.x0;
-
+				float x = font.max_height;
 				rectangle.x += x * size + spacing * size;
 			}
 			else if (text[i] >= ' ' && text[i] <= '~')
@@ -1635,9 +1641,16 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 				rectangle.z *= size;
 				rectangle.w *= size;
 
-				rectangle.y = linePositionY + quad.y0 * size;
+				rectangle.y = linePositionY + quad.y0 * size; //not needed
 
-				rectangle.x += rectangle.z + spacing * size;
+				if (font.monospaced)
+				{
+					rectangle.x += font.max_height + spacing * size;
+				}
+				else
+				{
+					rectangle.x += rectangle.z + spacing * size;
+				}
 
 				maxPosY = std::max(maxPosY, rectangle.y);
 				maxPos = std::max(maxPos, rectangle.x);
@@ -1652,6 +1665,8 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		float paddY = maxPosY;
 
 		paddY += font.max_height * size + bonusY;
+
+		paddY = (lineCount * font.max_height + (lineCount - 1) * line_space) * size;
 
 		return glm::vec2{paddX, paddY};
 
@@ -1844,11 +1859,14 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 	}
 
 	void Renderer2D::renderText(glm::vec2 position, const char *text, const Font font,
-		const Color4f color, const float size, const float spacing, const float line_space, bool showInCenter,
+		const Color4f color, const float sizePixels, const float spacing, const float line_space, bool showInCenter,
 		const Color4f ShadowColor
 		, const Color4f LightColor
 	)
 	{
+
+		float size = sizePixels / 64.f;
+
 		if (font.texture.id == 0)
 		{
 			errorFunc("Missing font", userDefinedData);
@@ -1862,68 +1880,11 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 		if (showInCenter)
 		{
-			auto textSize = this->getTextSize(text, font, size, spacing, line_space);
+			auto textSize = this->getTextSize(text, font, sizePixels, spacing, line_space);
 
 			position.x -= textSize.x / 2.f;
-			position.y += textSize.y / 2.f;
-		}
-
-		if (0)
-		{
-			//This is the y position we render at because it advances when we encounter newlines
-
-			float maxPos = 0;
-			float maxPosY = 0;
-
-			for (int i = 0; i < text_length; i++)
-			{
-				if (text[i] == '\n')
-				{
-					rectangle.x = position.x;
-					linePositionY += (font.max_height + line_space) * size;
-				}
-				else if (text[i] == '\t')
-				{
-					const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-					(font, '_');
-					auto x = quad.x1 - quad.x0;
-
-					rectangle.x += x * size * 3 + spacing * size;
-				}
-				else if (text[i] == ' ')
-				{
-					const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-					(font, '_');
-					auto x = quad.x1 - quad.x0;
-
-					rectangle.x += x * size + spacing * size;
-				}
-				else if (text[i] >= ' ' && text[i] <= '~')
-				{
-					const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-					(font, text[i]);
-
-					rectangle.z = quad.x1 - quad.x0;
-					rectangle.w = quad.y1 - quad.y0;
-
-					rectangle.z *= size;
-					rectangle.w *= size;
-
-					rectangle.y = linePositionY + quad.y0 * size;
-
-
-					rectangle.x += rectangle.z + spacing * size;
-					maxPos = std::max(maxPos, rectangle.x);
-					maxPosY = std::max(maxPosY, rectangle.y);
-				}
-			}
-
-			float padd = maxPos - position.x;
-			padd /= 2;
-			position.x -= padd;
-
-			float paddY = maxPosY - position.y;
-			position.y -= paddY;
+			position.y -= textSize.y / 2.f;
+			position.y += (font.max_height * size / 2.f) * 1.5f;
 		}
 
 		rectangle = {};
@@ -1941,17 +1902,12 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 			}
 			else if (text[i] == '\t')
 			{
-				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-				(font, '_');
-				auto x = quad.x1 - quad.x0;
-
-				rectangle.x += x * size * 3 + spacing * size;
+				float x = font.max_height;
+				rectangle.x += (x + spacing) * size * 3;
 			}
 			else if (text[i] == ' ')
 			{
-				const stbtt_aligned_quad quad = internal::fontGetGlyphQuad
-				(font, '_');
-				auto x = quad.x1 - quad.x0;
+				float x = font.max_height;
 				rectangle.x += x * size + spacing * size;
 			}
 			else if (text[i] >= ' ' && text[i] <= '~')
@@ -1995,8 +1951,15 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 				}
 
+				if (font.monospaced)
+				{
+					rectangle.x += font.max_height + spacing * size;
+				}
+				else
+				{
+					rectangle.x += rectangle.z + spacing * size;
+				}
 
-				rectangle.x += rectangle.z + spacing * size;
 			}
 		}
 	}

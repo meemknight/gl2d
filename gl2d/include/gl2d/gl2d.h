@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////
-//gl2d.h				1.6.1
-//Copyright(c) 2020 - 2024 Luta Vlad
+//gl2d.h				1.6.2
+//Copyright(c) 2020 - 2025 Luta Vlad
 //https://github.com/meemknight/gl2d
 //
 //	dependences: glew(or any loader you want to use), glm, stb_image, stb_trueType
@@ -283,12 +283,13 @@ namespace gl2d
 		stbtt_packedchar *packedCharsBuffer = 0;
 		int               packedCharsBufferSize = 0;
 		float             max_height = 0.f;
+		bool			  monospaced = false;
 
 		Font() {}
-		explicit Font(const char *file) { createFromFile(file); }
+		explicit Font(const char *file, bool monospaced = false) { createFromFile(file, monospaced); }
 
-		void createFromTTF(const unsigned char *ttf_data, const size_t ttf_data_size);
-		void createFromFile(const char *file);
+		void createFromTTF(const unsigned char *ttf_data, const size_t ttf_data_size, bool monospaced = false);
+		void createFromFile(const char *file, bool monospaced = false);
 
 		void cleanup();
 	};
@@ -447,14 +448,14 @@ namespace gl2d
 			//texturePositionsCount = 0;
 		}
 
-		glm::vec2 getTextSize(const char *text, const Font font, const float size = 1.5f,
+		glm::vec2 getTextSize(const char *text, const Font font, const float sizePixels = 64.f,
 			const float spacing = 4, const float line_space = 3);
 
 		// The origin will be the bottom left corner since it represents the line for the text to be drawn
 		//Pacing and lineSpace are influenced by size
 		//todo the function should returns the size of the text drawn also refactor
-		void renderText(glm::vec2 position, const char *text, const Font font, const Color4f color, const float size = 1.5f,
-			const float spacing = 4, const float line_space = 3, bool showInCenter = 1, const Color4f ShadowColor = {0.1,0.1,0.1,1}
+		void renderText(glm::vec2 position, const char *text, const Font font, const Color4f color, const float sizePixels = 64.f,
+			const float spacing = 4, const float line_spacePixels = 3, bool showInCenter = 1, const Color4f ShadowColor = {0.1,0.1,0.1,1}
 		, const Color4f LightColor = {});
 
 		//determines the text size so that it fits in the given box,
