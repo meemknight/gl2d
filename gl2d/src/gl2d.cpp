@@ -1,5 +1,5 @@
 /////////////////////////////////////////////////////////////////
-//gl2d.cpp				1.6.2
+//gl2d.cpp				1.6.3
 //Copyright(c) 2020 - 2025 Luta Vlad
 //https://github.com/meemknight/gl2d
 // 
@@ -68,6 +68,9 @@
 //
 // 1.6.2
 // finally fixed font rendering problems
+// 
+// 1.6.3
+// added depth option to the framebuffer
 // 
 ////////////////////////////////////////////////////////////////////////
 
@@ -2557,8 +2560,14 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		return r;
 	}
 
-	void FrameBuffer::create(unsigned int w, unsigned int h)
+	void FrameBuffer::create(unsigned int w, unsigned int h, bool hasDepth, bool nearestFilter)
 	{
+		this->w = w;
+		this->h = h;
+
+		auto filter = GL_LINEAR;
+		if (nearestFilter) { filter = GL_NEAREST; }
+
 		glGenFramebuffers(1, &fbo);
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
@@ -2567,21 +2576,22 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture.id, 0);
 
-		//glDrawBuffer(GL_COLOR_ATTACHMENT0); //todo why is this commented out ?
+		if (hasDepth)
+		{
+			glGenTextures(1, &depthTexture.id); //todo add depth stuff
+			glBindTexture(GL_TEXTURE_2D, depthTexture.id);
 
-		//glGenTextures(1, &depthtTexture);
-		//glBindTexture(GL_TEXTURE_2D, depthtTexture);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, w, h, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, nullptr);
 
-		//glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, w, h, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
 
-		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-		//glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthtTexture, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthTexture.id, 0);
+		}
 
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -2590,11 +2600,23 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 	void FrameBuffer::resize(unsigned int w, unsigned int h)
 	{
-		glBindTexture(GL_TEXTURE_2D, texture.id);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
-		//glBindTexture(GL_TEXTURE_2D, depthtTexture);
-		//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		if (this->w != w || this->h != h)
+		{
+			this->w = w;
+			this->h = h;
+
+			glBindTexture(GL_TEXTURE_2D, texture.id);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+			if (depthTexture.id)
+			{
+				glBindTexture(GL_TEXTURE_2D, depthTexture.id);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+			}
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
 
 	}
 
@@ -2606,14 +2628,8 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 			fbo = 0;
 		}
 
-		if (texture.id)
-		{
-			glDeleteTextures(1, &texture.id);
-			texture = {};
-		}
-
-		//glDeleteTextures(1, &depthtTexture);
-		//depthtTexture = 0;
+		texture.cleanup();
+		depthTexture.cleanup();
 	}
 
 	void FrameBuffer::clear()

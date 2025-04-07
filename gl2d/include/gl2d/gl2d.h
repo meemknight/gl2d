@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-//gl2d.h				1.6.2
+//gl2d.h				1.6.3
 //Copyright(c) 2020 - 2025 Luta Vlad
 //https://github.com/meemknight/gl2d
 //
@@ -351,8 +351,12 @@ namespace gl2d
 
 		unsigned int fbo = 0;
 		Texture texture = {};
+		Texture depthTexture = {};
 
-		void create(unsigned int w, unsigned int h);
+		unsigned int w = 0;
+		unsigned int h = 0;
+
+		void create(unsigned int w, unsigned int h, bool hasDepth = 0, bool nearestFilter = 0);
 		void resize(unsigned int w, unsigned int h);
 
 		//clears resources
