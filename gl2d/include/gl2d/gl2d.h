@@ -584,7 +584,4 @@ namespace gl2d
 
 
 
-
-
-
 };
