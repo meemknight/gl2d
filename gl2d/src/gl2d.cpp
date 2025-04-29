@@ -1103,17 +1103,17 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 		auto renderPoint = [&](glm::vec2 pos)
 		{
-			renderRectangle({pos - glm::vec2(1,1),2,2}, Colors_Black);
+			renderRectangle({pos - glm::vec2(1,1),width,width}, Colors_Black);
 		};
 
-		renderPoint(p1);
-		renderPoint(p2);
-		renderPoint(p3);
-		renderPoint(p4);
-		renderPoint(p5);
-		renderPoint(p6);
-		renderPoint(p7);
-		renderPoint(p8);
+		//renderPoint(p1);
+		//renderPoint(p2);
+		//renderPoint(p3);
+		//renderPoint(p4);
+		//renderPoint(p5);
+		//renderPoint(p6);
+		//renderPoint(p7);
+		//renderPoint(p8);
 
 		//add a padding so the lines align properly.
 		renderLine(p1, p2, color, width); //top line
@@ -2560,8 +2560,11 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		return r;
 	}
 
-	void FrameBuffer::create(unsigned int w, unsigned int h, bool hasDepth, bool nearestFilter)
+	void FrameBuffer::create(int w, int h, bool hasDepth, bool nearestFilter)
 	{
+		if (w < 0) { w = 0; }
+		if (h < 0) { h = 0; }
+
 		this->w = w;
 		this->h = h;
 
@@ -2598,8 +2601,10 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 	}
 
-	void FrameBuffer::resize(unsigned int w, unsigned int h)
+	void FrameBuffer::resize(int w, int h)
 	{
+		if (w < 0) { w = 0; }
+		if (h < 0) { h = 0; }
 
 		if (this->w != w || this->h != h)
 		{

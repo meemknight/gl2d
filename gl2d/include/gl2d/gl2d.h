@@ -71,7 +71,7 @@ namespace gl2d
 	void cleanup();
 
 	//The default error function, it writes to the console.
-	void defaultErrorFunc(const char* msg, void *userDefinedData);
+	void defaultErrorFunc(const char *msg, void *userDefinedData);
 
 	//set by the user, it is passed to the error function
 	void setUserDefinedData(void *data);
@@ -79,7 +79,7 @@ namespace gl2d
 	using errorFuncType = decltype(defaultErrorFunc);
 
 	//for the user to set a custom error function
-	errorFuncType* setErrorFuncCallback(errorFuncType* newFunc);
+	errorFuncType *setErrorFuncCallback(errorFuncType *newFunc);
 
 	struct Font;
 
@@ -163,39 +163,41 @@ namespace gl2d
 		GLuint id = 0;
 
 		Texture() {};
-		explicit Texture(const char* file, bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED,
+		explicit Texture(const char *file, bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED,
 			bool useMipMaps = GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS)
-			{ loadFromFile(file, pixelated, useMipMaps); }
+		{
+			loadFromFile(file, pixelated, useMipMaps);
+		}
 
 		//returns the texture dimensions
 		glm::ivec2 GetSize();
 
 		//Note: This function expects a buffer of bytes in GL_RGBA format
-		void createFromBuffer(const char* image_data, const int width,
+		void createFromBuffer(const char *image_data, const int width,
 			const int height, bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED, bool useMipMaps = GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS);
-		
+
 		//used internally. It creates a 1by1 white texture
-		void create1PxSquare(const char* b = 0);
-		
-		void createFromFileData(const unsigned char* image_file_data, const size_t image_file_size, 
+		void create1PxSquare(const char *b = 0);
+
+		void createFromFileData(const unsigned char *image_file_data, const size_t image_file_size,
 			bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED, bool useMipMaps = GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS);
 
 		//For texture atlases.
 		//Adds a pixel padding between sprites elements to avoid some visual bugs.
 		//Block size is the size of a block in pixels.
 		//To be used with texture atlas padding to get the texture coordonates.
-		void createFromFileDataWithPixelPadding(const unsigned char* image_file_data,
+		void createFromFileDataWithPixelPadding(const unsigned char *image_file_data,
 			const size_t image_file_size, int blockSize,
 			bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED, bool useMipMaps = GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS);
 
-		void loadFromFile(const char* fileName,
+		void loadFromFile(const char *fileName,
 			bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED, bool useMipMaps = GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS);
 
 		//For texture atlases.
 		//Adds a pixel padding between sprites elements to avoid some visual bugs.
 		//Block size is the size of a block in pixels.
 		//To be used with texture atlas padding to get the texture coordonates.
-		void loadFromFileWithPixelPadding(const char* fileName, int blockSize,
+		void loadFromFileWithPixelPadding(const char *fileName, int blockSize,
 			bool pixelated = GL2D_DEFAULT_TEXTURE_LOAD_MODE_PIXELATED, bool useMipMaps = GL2D_DEFAULT_TEXTURE_LOAD_MODE_USE_MIPMAPS);
 
 
@@ -235,7 +237,7 @@ namespace gl2d
 	struct TextureAtlas
 	{
 		TextureAtlas() {};
-		TextureAtlas(int x, int y) :xCount(x), yCount(y) {};
+		TextureAtlas(int x, int y):xCount(x), yCount(y) {};
 
 		int xCount = 0;
 		int yCount = 0;
@@ -253,7 +255,7 @@ namespace gl2d
 		TextureAtlasPadding() {};
 
 		//count count size of the full texture(in pixels)
-		TextureAtlasPadding(int x, int y, int xSize, int ySize) :xCount(x), yCount(y)
+		TextureAtlasPadding(int x, int y, int xSize, int ySize):xCount(x), yCount(y)
 			, xSize(xSize), ySize(ySize)
 		{
 		};
@@ -311,7 +313,7 @@ namespace gl2d
 	struct Camera
 	{
 		glm::vec2  position = {};
-	
+
 		// Camera rotation in degrees
 		float rotation = 0.f;
 
@@ -347,17 +349,17 @@ namespace gl2d
 	struct FrameBuffer
 	{
 		FrameBuffer() {};
-		explicit FrameBuffer(unsigned int w, unsigned int h) { create(w, h); };
+		explicit FrameBuffer(int w, int h) { create(w, h); };
 
 		unsigned int fbo = 0;
 		Texture texture = {};
 		Texture depthTexture = {};
 
-		unsigned int w = 0;
-		unsigned int h = 0;
+		int w = 0;
+		int h = 0;
 
-		void create(unsigned int w, unsigned int h, bool hasDepth = 0, bool nearestFilter = 0);
-		void resize(unsigned int w, unsigned int h);
+		void create(int w, int h, bool hasDepth = 0, bool nearestFilter = 0);
+		void resize(int w, int h);
 
 		//clears resources
 		void cleanup();
@@ -381,11 +383,11 @@ namespace gl2d
 		Renderer2D() {};
 
 		//feel free to delete this lines but you probably don't want to copy the renderer from a place to another
-		Renderer2D(Renderer2D &other) = delete;
-		Renderer2D(Renderer2D &&other) = delete;
-		Renderer2D operator=(Renderer2D other) = delete;
-		Renderer2D operator=(Renderer2D &other) = delete;
-		Renderer2D operator=(Renderer2D &&other) = delete;
+		//Renderer2D(Renderer2D &other) = delete;
+		//Renderer2D(Renderer2D &&other) = delete;
+		//Renderer2D operator=(Renderer2D other) = delete;
+		//Renderer2D operator=(Renderer2D &other) = delete;
+		//Renderer2D operator=(Renderer2D &&other) = delete;
 
 		//creates the renderer
 		//fbo is the default frame buffer, 0 means drawing to the screen.
@@ -407,7 +409,7 @@ namespace gl2d
 		std::vector<glm::vec4>spriteColors;
 		std::vector<glm::vec2>texturePositions;
 		std::vector<Texture>spriteTextures;
-		
+
 		//glm::vec2 spritePositions[GL2D_Renderer2D_Max_Triangle_Capacity * 6];
 		//glm::vec4 spriteColors[GL2D_Renderer2D_Max_Triangle_Capacity * 6];
 		//glm::vec2 texturePositions[GL2D_Renderer2D_Max_Triangle_Capacity * 6];
@@ -437,7 +439,7 @@ namespace gl2d
 		void updateWindowMetrics(int w, int h) { windowW = w; windowH = h; }
 
 		//converts pixels to screen (top left) (bottom right)
-		glm::vec4 toScreen(const glm::vec4& transform);
+		glm::vec4 toScreen(const glm::vec4 &transform);
 
 		//clears the things that are to be drawn when calling flush
 		inline void clearDrawData()
@@ -497,7 +499,7 @@ namespace gl2d
 		void renderRectangle(const Rect transforms, const Texture texture, const Color4f colors[4], const glm::vec2 origin = {}, const float rotationDegrees = 0.f, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords);
 		inline void renderRectangle(const Rect transforms, const Texture texture, const Color4f colors = {1,1,1,1}, const glm::vec2 origin = {}, const float rotationDegrees = 0, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords)
 		{
-			Color4f c[4] = { colors,colors,colors,colors };
+			Color4f c[4] = {colors,colors,colors,colors};
 			renderRectangle(transforms, texture, c, origin, rotationDegrees, textureCoords);
 		}
 
@@ -505,22 +507,22 @@ namespace gl2d
 		void renderRectangleAbsRotation(const Rect transforms, const Texture texture, const Color4f colors[4], const glm::vec2 origin = {}, const float rotationDegrees = 0.f, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords);
 		inline void renderRectangleAbsRotation(const Rect transforms, const Texture texture, const Color4f colors = {1,1,1,1}, const glm::vec2 origin = {}, const float rotationDegrees = 0.f, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords)
 		{
-			Color4f c[4] = { colors,colors,colors,colors };
+			Color4f c[4] = {colors,colors,colors,colors};
 			renderRectangleAbsRotation(transforms, texture, c, origin, rotationDegrees, textureCoords);
 		}
 
-		void renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin = { 0,0 }, const float rotationDegrees = 0);
+		void renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin = {0,0}, const float rotationDegrees = 0);
 		inline void renderRectangle(const Rect transforms, const Color4f colors = {1,1,1,1}, const glm::vec2 origin = {0,0}, const float rotationDegrees = 0)
 		{
-			Color4f c[4] = { colors,colors,colors,colors };
+			Color4f c[4] = {colors,colors,colors,colors};
 			renderRectangle(transforms, c, origin, rotationDegrees);
 		}
 
 		//abs rotation means that the rotaion is relative to the screen rather than object
-		void renderRectangleAbsRotation(const Rect transforms, const Color4f colors[4], const glm::vec2 origin = { 0,0 }, const float rotationDegrees = 0);
-		inline void renderRectangleAbsRotation(const Rect transforms, const Color4f colors = {1,1,1,1}, const glm::vec2 origin = { 0,0 }, const float rotationDegrees = 0)
+		void renderRectangleAbsRotation(const Rect transforms, const Color4f colors[4], const glm::vec2 origin = {0,0}, const float rotationDegrees = 0);
+		inline void renderRectangleAbsRotation(const Rect transforms, const Color4f colors = {1,1,1,1}, const glm::vec2 origin = {0,0}, const float rotationDegrees = 0)
 		{
-			Color4f c[4] = { colors,colors,colors,colors };
+			Color4f c[4] = {colors,colors,colors,colors};
 			renderRectangleAbsRotation(transforms, c, origin, rotationDegrees);
 		}
 
@@ -529,7 +531,7 @@ namespace gl2d
 		void renderLine(const glm::vec2 start, const glm::vec2 end, const Color4f color, const float width = 2.f);
 
 		void renderRectangleOutline(const glm::vec4 position, const Color4f color, const float width = 2.f, const glm::vec2 origin = {}, const float rotationDegrees = 0);
-		
+
 		void renderCircleOutline(const glm::vec2 position, const float size, const Color4f color, const float width = 2.f, const unsigned int segments = 16);
 
 		//legacy, use render9Patch2
@@ -564,12 +566,12 @@ namespace gl2d
 
 		gl2d::FrameBuffer postProcessFbo1 = {};
 		gl2d::FrameBuffer postProcessFbo2 = {};
-		
+
 		//internal use
 		bool internalPostProcessFlip = 0;
 
 		//the FBO size should be equal to the current configured w and h of the renderer
-		void flushPostProcess(const std::vector<ShaderProgram> &postProcesses, 
+		void flushPostProcess(const std::vector<ShaderProgram> &postProcesses,
 			FrameBuffer frameBuffer = {}, bool clearDrawData = true);
 
 		//the FBO size should be equal to the current configured w and h of the renderer
