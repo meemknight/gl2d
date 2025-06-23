@@ -47,14 +47,24 @@ int main()
 
 
 		// Render objects
-		renderer.renderRectangle({100, 250, 100, 100}, Colors_Orange, {}, 0);
+		//renderer.renderRectangle({100, 250, 100, 100}, Colors_Orange, {}, 0);
 		renderer.renderRectangle({100, 100, 100, 100}, texture, Colors_White, {}, 0);
 
-		renderer.renderText({500, 500}, "render text test !\n# # # #\n####", font, Colors_White, 64, 4, 0, true);
-		renderer.renderRectangle({500, 500, 4, 4}, Colors_Red, {}, 0);
+		//renderer.renderText({500, 500}, "render text test !\n# # # #\n####", font, Colors_White, 64, 4, 0, true);
+		//renderer.renderRectangle({500, 500, 4, 4}, Colors_Red, {}, 0);
 
 		// Add more rendering here...
 
+		//3D
+		{
+			renderer.currentCamera3D.use = true;
+			auto &c = renderer.currentCamera3D;
+
+			//c.rotateCamera({0.001, 0});
+
+			c.position = {1,0, 3};
+			
+		}
 
 
 

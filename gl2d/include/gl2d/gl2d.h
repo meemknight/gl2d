@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-//gl2d.h				1.6.3
+//gl2d.h				1.6.4 work in progress
 //Copyright(c) 2020 - 2025 Luta Vlad
 //https://github.com/meemknight/gl2d
 //
@@ -92,7 +92,8 @@ namespace gl2d
 	struct ShaderProgram
 	{
 		GLuint id = 0;
-		int u_sampler = 0;
+		int u_sampler = -1;
+		int u_viewProjection = -1;
 
 		void bind() { glUseProgram(id); };
 
@@ -333,6 +334,62 @@ namespace gl2d
 		void follow(glm::vec2 pos, float speed, float min, float max, float w, float h);
 	};
 
+	struct Camera3D
+	{
+		Camera3D() = default;
+		Camera3D(float aspectRatio, float fovRadians)
+			:aspectRatio(aspectRatio),
+			fovRadians(fovRadians)
+		{
+		}
+
+		glm::vec3 up = {0.f,1.f,0.f};
+
+		float aspectRatio = 1;
+		float fovRadians = glm::radians(70.f);
+
+		float closePlane = 0.01f;
+		float farPlane = 800.f;
+
+
+		glm::vec3 position = {};
+		glm::vec3 viewDirection = {0,0,-1};
+
+		glm::mat4x4 getProjectionMatrix();
+		glm::mat4x4 getViewMatrix();
+		glm::mat4x4 getViewProjectionMatrix();
+
+
+		void rotateCamera(const glm::vec2 delta);
+		float yaw = 0.f;
+		float pitch = 0.f;
+
+		void moveFPS(glm::vec3 direction);
+		void rotateFPS(glm::ivec2 mousePos, float speed);
+		glm::ivec2 lastMousePos = {};
+
+		bool use = false;
+
+		bool operator==(const Camera3D &other)
+		{
+			return
+				(up == other.up)
+				&& (aspectRatio == other.aspectRatio)
+				&& (fovRadians == other.fovRadians)
+				&& (closePlane == other.closePlane)
+				&& (farPlane == other.farPlane)
+				&& (position == other.position)
+				&& (viewDirection == other.viewDirection)
+				;
+		};
+
+		bool operator!=(const Camera3D &other)
+		{
+			return !(*this == other);
+		};
+
+	};
+
 
 #pragma endregion
 
@@ -350,6 +407,7 @@ namespace gl2d
 	{
 		FrameBuffer() {};
 		explicit FrameBuffer(int w, int h) { create(w, h); };
+		explicit FrameBuffer(unsigned int fbo):fbo(fbo) {};
 
 		unsigned int fbo = 0;
 		Texture texture = {};
@@ -383,17 +441,18 @@ namespace gl2d
 		Renderer2D() {};
 
 		//feel free to delete this lines but you probably don't want to copy the renderer from a place to another
-		//Renderer2D(Renderer2D &other) = delete;
-		//Renderer2D(Renderer2D &&other) = delete;
-		//Renderer2D operator=(Renderer2D other) = delete;
-		//Renderer2D operator=(Renderer2D &other) = delete;
-		//Renderer2D operator=(Renderer2D &&other) = delete;
+		Renderer2D(Renderer2D &other) = delete;
+		Renderer2D(Renderer2D &&other) = delete;
+		Renderer2D operator=(Renderer2D other) = delete;
+		Renderer2D operator=(Renderer2D &other) = delete;
+		Renderer2D operator=(Renderer2D &&other) = delete;
 
 		//creates the renderer
 		//fbo is the default frame buffer, 0 means drawing to the screen.
 		//Quad count is the reserved quad capacity for drawing.
 		//If the capacity is exceded it will be extended but this will cost performance.
 		void create(GLuint fbo = 0, size_t quadCount = 1'000);
+
 
 		//Clears the object alocated resources but
 		//does not clear resources allocated by user like textures, fonts and fbos!
@@ -405,7 +464,7 @@ namespace gl2d
 		GLuint vao = {};
 
 		//4 elements each component
-		std::vector<glm::vec2>spritePositions;
+		std::vector<glm::vec4>spritePositions;
 		std::vector<glm::vec4>spriteColors;
 		std::vector<glm::vec2>texturePositions;
 		std::vector<Texture>spriteTextures;
@@ -426,9 +485,14 @@ namespace gl2d
 		void popShader();
 
 		Camera currentCamera = {};
+		Camera3D currentCamera3D = {};
 		std::vector<Camera> cameraPushPop;
 		void pushCamera(Camera c = {});
 		void popCamera();
+
+		std::vector<Camera3D> camera3DPushPop;
+		void pushCamera3D(Camera3D c = {});
+		void popCamera3D();
 
 		glm::vec4 getViewRect(); //returns the view coordonates and size of this camera. Doesn't take rotation into account!
 
@@ -463,7 +527,7 @@ namespace gl2d
 		//todo the function should returns the size of the text drawn also refactor
 		void renderText(glm::vec2 position, const char *text, const Font font, const Color4f color, const float sizePixels = 64.f,
 			const float spacing = 4, const float line_spacePixels = 3, bool showInCenter = 1, const Color4f ShadowColor = {0.1,0.1,0.1,1}
-		, const Color4f LightColor = {});
+		, const Color4f LightColor = {}, float positionZ = 0);
 
 		//determines the text size so that it fits in the given box,
 		//the x and y components of the transform are ignored
@@ -496,49 +560,50 @@ namespace gl2d
 		float determineTextRescaleFitBigger(const std::string &str,
 			gl2d::Font &f, glm::vec4 transform, float minSize);
 
-		void renderRectangle(const Rect transforms, const Texture texture, const Color4f colors[4], const glm::vec2 origin = {}, const float rotationDegrees = 0.f, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords);
-		inline void renderRectangle(const Rect transforms, const Texture texture, const Color4f colors = {1,1,1,1}, const glm::vec2 origin = {}, const float rotationDegrees = 0, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords)
+		//positionZ is used for 3D camera
+		void renderRectangle(const Rect transforms, const Texture texture, const Color4f colors[4], const glm::vec2 origin = {}, const float rotationDegrees = 0.f, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords, float positionZ = 0);
+		inline void renderRectangle(const Rect transforms, const Texture texture, const Color4f colors = {1,1,1,1}, const glm::vec2 origin = {}, const float rotationDegrees = 0, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords, float positionZ = 0)
 		{
 			Color4f c[4] = {colors,colors,colors,colors};
-			renderRectangle(transforms, texture, c, origin, rotationDegrees, textureCoords);
+			renderRectangle(transforms, texture, c, origin, rotationDegrees, textureCoords, positionZ);
 		}
 
 		//abs rotation means that the rotaion is relative to the screen rather than object
-		void renderRectangleAbsRotation(const Rect transforms, const Texture texture, const Color4f colors[4], const glm::vec2 origin = {}, const float rotationDegrees = 0.f, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords);
-		inline void renderRectangleAbsRotation(const Rect transforms, const Texture texture, const Color4f colors = {1,1,1,1}, const glm::vec2 origin = {}, const float rotationDegrees = 0.f, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords)
+		void renderRectangleAbsRotation(const Rect transforms, const Texture texture, const Color4f colors[4], const glm::vec2 origin = {}, const float rotationDegrees = 0.f, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords, float positionZ = 0);
+		inline void renderRectangleAbsRotation(const Rect transforms, const Texture texture, const Color4f colors = {1,1,1,1}, const glm::vec2 origin = {}, const float rotationDegrees = 0.f, const glm::vec4 textureCoords = GL2D_DefaultTextureCoords, float positionZ = 0)
 		{
 			Color4f c[4] = {colors,colors,colors,colors};
-			renderRectangleAbsRotation(transforms, texture, c, origin, rotationDegrees, textureCoords);
+			renderRectangleAbsRotation(transforms, texture, c, origin, rotationDegrees, textureCoords, positionZ);
 		}
 
-		void renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin = {0,0}, const float rotationDegrees = 0);
-		inline void renderRectangle(const Rect transforms, const Color4f colors = {1,1,1,1}, const glm::vec2 origin = {0,0}, const float rotationDegrees = 0)
+		void renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin = {0,0}, const float rotationDegrees = 0, float positionZ = 0);
+		inline void renderRectangle(const Rect transforms, const Color4f colors = {1,1,1,1}, const glm::vec2 origin = {0,0}, const float rotationDegrees = 0, float positionZ = 0)
 		{
 			Color4f c[4] = {colors,colors,colors,colors};
-			renderRectangle(transforms, c, origin, rotationDegrees);
+			renderRectangle(transforms, c, origin, rotationDegrees, positionZ);
 		}
 
 		//abs rotation means that the rotaion is relative to the screen rather than object
-		void renderRectangleAbsRotation(const Rect transforms, const Color4f colors[4], const glm::vec2 origin = {0,0}, const float rotationDegrees = 0);
-		inline void renderRectangleAbsRotation(const Rect transforms, const Color4f colors = {1,1,1,1}, const glm::vec2 origin = {0,0}, const float rotationDegrees = 0)
+		void renderRectangleAbsRotation(const Rect transforms, const Color4f colors[4], const glm::vec2 origin = {0,0}, const float rotationDegrees = 0, float positionZ = 0);
+		inline void renderRectangleAbsRotation(const Rect transforms, const Color4f colors = {1,1,1,1}, const glm::vec2 origin = {0,0}, const float rotationDegrees = 0, float positionZ = 0)
 		{
 			Color4f c[4] = {colors,colors,colors,colors};
-			renderRectangleAbsRotation(transforms, c, origin, rotationDegrees);
+			renderRectangleAbsRotation(transforms, c, origin, rotationDegrees, positionZ);
 		}
 
-		void renderLine(const glm::vec2 position, const float angleDegrees, const float length, const Color4f color, const float width = 2.f);
+		void renderLine(const glm::vec2 position, const float angleDegrees, const float length, const Color4f color, const float width = 2.f, float positionZ = 0);
 
-		void renderLine(const glm::vec2 start, const glm::vec2 end, const Color4f color, const float width = 2.f);
+		void renderLine(const glm::vec2 start, const glm::vec2 end, const Color4f color, const float width = 2.f, float positionZ = 0);
 
-		void renderRectangleOutline(const glm::vec4 position, const Color4f color, const float width = 2.f, const glm::vec2 origin = {}, const float rotationDegrees = 0);
+		void renderRectangleOutline(const glm::vec4 position, const Color4f color, const float width = 2.f, const glm::vec2 origin = {}, const float rotationDegrees = 0, float positionZ = 0);
 
-		void renderCircleOutline(const glm::vec2 position, const float size, const Color4f color, const float width = 2.f, const unsigned int segments = 16);
+		void renderCircleOutline(const glm::vec2 position, const float size, const Color4f color, const float width = 2.f, const unsigned int segments = 16, float positionZ = 0);
 
 		//legacy, use render9Patch2
-		void render9Patch(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotationDegrees, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords);
+		void render9Patch(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotationDegrees, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords, float positionZ = 0);
 
 		//used for ui. draws a texture that scales the margins different so buttons of different sizes can be drawn.
-		void render9Patch2(const Rect position, const Color4f color, const glm::vec2 origin, const float rotationDegrees, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords);
+		void render9Patch2(const Rect position, const Color4f color, const glm::vec2 origin, const float rotationDegrees, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords, float positionZ = 0);
 
 		void clearScreen(const Color4f color = Color4f{0,0,0,0});
 

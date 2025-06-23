@@ -1,5 +1,6 @@
+#include "gl2d/gl2d.h"
 /////////////////////////////////////////////////////////////////
-//gl2d.cpp				1.6.3
+//gl2d.cpp				1.6.4 work in progress
 //Copyright(c) 2020 - 2025 Luta Vlad
 //https://github.com/meemknight/gl2d
 // 
@@ -72,6 +73,9 @@
 // 1.6.3
 // added depth option to the framebuffer
 // 
+// 1.6.4 work in progress
+// work in progress for 3D camera
+// 
 ////////////////////////////////////////////////////////////////////////
 
 
@@ -84,6 +88,11 @@
 //	add render circle
 //	
 //
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/transform.hpp>
 
 #include <gl2d/gl2d.h>
 
@@ -117,15 +126,16 @@ namespace gl2d
 	static const char *defaultVertexShader =
 		GL2D_OPNEGL_SHADER_VERSION "\n"
 		GL2D_OPNEGL_SHADER_PRECISION "\n"
-		"in vec2 quad_positions;\n"
+		"in vec3 quad_positions;\n"
 		"in vec4 quad_colors;\n"
 		"in vec2 texturePositions;\n"
 		"out vec4 v_color;\n"
 		"out vec2 v_texture;\n"
 		"out vec2 v_positions;\n"
+		"uniform mat4 u_viewProjection = mat4(1);\n"
 		"void main()\n"
 		"{\n"
-		"	gl_Position = vec4(quad_positions, 0, 1);\n"
+		"	gl_Position = u_viewProjection * vec4(quad_positions, 1);\n"
 		"	v_color = quad_colors;\n"
 		"	v_texture = texturePositions;\n"
 		"	v_positions = gl_Position.xy;\n"
@@ -395,6 +405,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		validateProgram(shader.id);
 
 		shader.u_sampler = glGetUniformLocation(shader.id, "u_sampler");
+		shader.u_viewProjection = glGetUniformLocation(shader.id, "u_viewProjection");
 
 		return shader;
 	}
@@ -619,6 +630,90 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 	///////////////////// Camera /////////////////////
 #pragma region Camera
 
+
+	glm::mat4x4 gl2d::Camera3D::getProjectionMatrix()
+	{
+		if (std::isinf(this->aspectRatio) || std::isnan(this->aspectRatio) || this->aspectRatio == 0)
+		{
+			return glm::mat4x4(1.f);
+		}
+
+		auto mat = glm::perspective(this->fovRadians, this->aspectRatio, this->closePlane,
+			this->farPlane);
+
+		return mat;
+	}
+
+	glm::mat4x4 gl2d::Camera3D::getViewMatrix()
+	{
+
+		glm::vec3 dir = glm::vec3(position) + glm::vec3(viewDirection);
+		return  glm::lookAt(glm::vec3(position), dir, up);
+	}
+
+	glm::mat4x4 gl2d::Camera3D::getViewProjectionMatrix()
+	{
+		return getProjectionMatrix() * getViewMatrix();
+	}
+
+	void gl2d::Camera3D::rotateCamera(const glm::vec2 delta)
+	{
+
+		constexpr float PI = 3.1415926;
+
+		yaw += delta.x;
+		pitch += delta.y;
+
+		if (yaw >= 2 * PI)
+		{
+			yaw -= 2 * PI;
+		}
+		else if (yaw < 0)
+		{
+			yaw = 2 * PI - yaw;
+		}
+
+		if (pitch > PI / 2.f - 0.01) { pitch = PI / 2.f - 0.01; }
+		if (pitch < -PI / 2.f + 0.01) { pitch = -PI / 2.f + 0.01; }
+
+		viewDirection = glm::vec3(0, 0, -1);
+
+		viewDirection = glm::mat3(glm::rotate(yaw, up)) * viewDirection;
+
+		glm::vec3 rotatePitchAxe = glm::cross(viewDirection, up);
+		viewDirection = glm::mat3(glm::rotate(pitch, rotatePitchAxe)) * viewDirection;
+	}
+
+	void gl2d::Camera3D::moveFPS(glm::vec3 direction)
+	{
+		viewDirection = glm::normalize(viewDirection);
+
+		//forward
+		float forward = -direction.z;
+		float leftRight = direction.x;
+		float upDown = direction.y;
+
+		glm::vec3 move = {};
+
+		move += up * upDown;
+		move += glm::normalize(glm::cross(viewDirection, up)) * leftRight;
+		move += viewDirection * forward;
+
+		this->position += move;
+	}
+
+	void gl2d::Camera3D::rotateFPS(glm::ivec2 mousePos, float speed)
+	{
+		glm::vec2 delta = lastMousePos - mousePos;
+		delta *= speed;
+
+		rotateCamera(delta);
+
+		lastMousePos = mousePos;
+	}
+
+
+
 #pragma endregion
 
 	///////////////////// Renderer2D /////////////////////
@@ -679,13 +774,48 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		glUniform1i(renderer.currentShader.u_sampler, 0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, renderer.buffers[Renderer2DBufferType::quadPositions]);
-		glBufferData(GL_ARRAY_BUFFER, renderer.spritePositions.size() * sizeof(glm::vec2), renderer.spritePositions.data(), GL_STREAM_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, renderer.spritePositions.size() * sizeof(glm::vec4), renderer.spritePositions.data(), GL_STREAM_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, renderer.buffers[Renderer2DBufferType::quadColors]);
 		glBufferData(GL_ARRAY_BUFFER, renderer.spriteColors.size() * sizeof(glm::vec4), renderer.spriteColors.data(), GL_STREAM_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, renderer.buffers[Renderer2DBufferType::texturePositions]);
 		glBufferData(GL_ARRAY_BUFFER, renderer.texturePositions.size() * sizeof(glm::vec2), renderer.texturePositions.data(), GL_STREAM_DRAW);
+
+		bool use3D = false;
+
+		//todo 2 different shaders to properly optimize this
+		if (renderer.currentShader.u_viewProjection >= 0)
+		{
+			if (renderer.currentCamera3D.use)
+			{
+				//renderer.currentCamera3D.aspectRatio = (float)renderer.windowW / renderer.windowH;
+				renderer.currentCamera3D.aspectRatio = 1;
+
+				glUniformMatrix4fv(renderer.currentShader.u_viewProjection, 1, GL_FALSE, &renderer.currentCamera3D.getViewProjectionMatrix()[0][0]);
+				use3D = true;
+			}
+			else
+			{
+				glUniformMatrix4fv(renderer.currentShader.u_viewProjection, 1, GL_FALSE, &glm::mat4(1.f)[0][0]);
+			}
+
+		}
+
+		GLint oldDepthFunc = 0;
+		GLboolean depthTestEnabled = glIsEnabled(GL_DEPTH_TEST);
+
+		if (use3D)
+		{
+			glEnable(GL_DEPTH_TEST);
+
+			glGetIntegerv(GL_DEPTH_FUNC, &oldDepthFunc);
+			glDepthFunc(GL_LEQUAL);
+		}
+		else
+		{
+			glDisable(GL_DEPTH_TEST);
+		}
 
 		//Instance render the textures
 		{
@@ -712,6 +842,15 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 			glDrawArrays(GL_TRIANGLES, pos * 6, 6 * (size - pos));
 
 			glBindVertexArray(0);
+		}
+
+		if (use3D)
+		{
+			glDepthFunc(oldDepthFunc);
+			if (depthTestEnabled)
+				glEnable(GL_DEPTH_TEST);
+			if (!depthTestEnabled)
+				glDisable(GL_DEPTH_TEST);
 		}
 
 		if (clearDrawData)
@@ -751,14 +890,14 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 	//doesn't set the viewport
 	void renderQuadToScreenInternal(gl2d::Renderer2D &renderer)
 	{
-		static float positions[12] = {
-		-1, 1,
-		-1, -1,
-		1, 1,
+		static float positions[26] = {
+		-1, 1,0,1,
+		-1, -1,0,1,
+		1, 1,0,1,
 
-		1, 1,
-		-1, -1,
-		1, -1,};
+		1, 1,0,1,
+		-1, -1,0,1,
+		1, -1,0,1};
 
 		//not used
 		static float colors[6 * 4] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,};
@@ -772,12 +911,13 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 			1, 0,
 		};
 
+		enableNecessaryGLFeatures();
+
 
 		glBindVertexArray(renderer.vao);
 
-
 		glBindBuffer(GL_ARRAY_BUFFER, renderer.buffers[Renderer2DBufferType::quadPositions]);
-		glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(glm::vec2), positions, GL_STREAM_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(glm::vec4), positions, GL_STREAM_DRAW);
 
 		glBindBuffer(GL_ARRAY_BUFFER, renderer.buffers[Renderer2DBufferType::quadColors]);
 		glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(glm::vec4), colors, GL_STREAM_DRAW);
@@ -841,6 +981,11 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		FrameBuffer frameBuffer, bool clearDrawData)
 	{
 
+		if (frameBuffer.fbo == 0)
+		{
+			frameBuffer.fbo = defaultFBO;
+		}
+
 		if (postProcesses.empty())
 		{
 			if (clearDrawData)
@@ -850,7 +995,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 			}
 		}
 
-		if (!postProcessFbo1.fbo) { postProcessFbo1.create(0, 0); }
+		if (!postProcessFbo1.fbo) { postProcessFbo1.create(windowW, windowH); }
 
 		postProcessFbo1.resize(windowW, windowH);
 		postProcessFbo1.clear();
@@ -937,16 +1082,17 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 	///////////////////// Renderer2D - render ///////////////////// 
 
-	void Renderer2D::renderRectangle(const Rect transforms, const Texture texture, const Color4f colors[4], const glm::vec2 origin, const float rotation, const glm::vec4 textureCoords)
+	void Renderer2D::renderRectangle(const Rect transforms, const Texture texture,
+		const Color4f colors[4], const glm::vec2 origin, const float rotation, const glm::vec4 textureCoords, float positionZ)
 	{
 		glm::vec2 newOrigin;
 		newOrigin.x = origin.x + transforms.x + (transforms.z / 2);
 		newOrigin.y = origin.y + transforms.y + (transforms.w / 2);
-		renderRectangleAbsRotation(transforms, texture, colors, newOrigin, rotation, textureCoords);
+		renderRectangleAbsRotation(transforms, texture, colors, newOrigin, rotation, textureCoords, positionZ);
 	}
 
 	void gl2d::Renderer2D::renderRectangleAbsRotation(const Rect transforms,
-		const Texture texture, const Color4f colors[4], const glm::vec2 origin, const float rotation, const glm::vec4 textureCoords)
+		const Texture texture, const Color4f colors[4], const glm::vec2 origin, const float rotation, const glm::vec4 textureCoords, float positionZ)
 	{
 		Texture textureCopy = texture;
 
@@ -1020,13 +1166,13 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		v3.y = internal::positionToScreenCoordsY(v3.y, (float)windowH);
 		v4.y = internal::positionToScreenCoordsY(v4.y, (float)windowH);
 
-		spritePositions.push_back(glm::vec2{v1.x, v1.y});
-		spritePositions.push_back(glm::vec2{v2.x, v2.y});
-		spritePositions.push_back(glm::vec2{v4.x, v4.y});
+		spritePositions.push_back(glm::vec4{v1.x, v1.y, positionZ, 1});
+		spritePositions.push_back(glm::vec4{v2.x, v2.y, positionZ, 1});
+		spritePositions.push_back(glm::vec4{v4.x, v4.y, positionZ, 1});
 
-		spritePositions.push_back(glm::vec2{v2.x, v2.y});
-		spritePositions.push_back(glm::vec2{v3.x, v3.y});
-		spritePositions.push_back(glm::vec2{v4.x, v4.y});
+		spritePositions.push_back(glm::vec4{v2.x, v2.y, positionZ, 1});
+		spritePositions.push_back(glm::vec4{v3.x, v3.y, positionZ, 1});
+		spritePositions.push_back(glm::vec4{v4.x, v4.y, positionZ, 1});
 
 		spriteColors.push_back(colors[0]);
 		spriteColors.push_back(colors[1]);
@@ -1045,32 +1191,32 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		spriteTextures.push_back(textureCopy);
 	}
 
-	void Renderer2D::renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation)
+	void Renderer2D::renderRectangle(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation, float positionZ)
 	{
-		renderRectangle(transforms, white1pxSquareTexture, colors, origin, rotation);
+		renderRectangle(transforms, white1pxSquareTexture, colors, origin, rotation, GL2D_DefaultTextureCoords, positionZ);
 	}
 
-	void Renderer2D::renderRectangleAbsRotation(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation)
+	void Renderer2D::renderRectangleAbsRotation(const Rect transforms, const Color4f colors[4], const glm::vec2 origin, const float rotation, float positionZ)
 	{
-		renderRectangleAbsRotation(transforms, white1pxSquareTexture, colors, origin, rotation);
+		renderRectangleAbsRotation(transforms, white1pxSquareTexture, colors, origin, rotation, GL2D_DefaultTextureCoords, positionZ);
 	}
 
-	void Renderer2D::renderLine(const glm::vec2 position, const float angleDegrees, const float length, const Color4f color, const float width)
+	void Renderer2D::renderLine(const glm::vec2 position, const float angleDegrees, const float length, const Color4f color, const float width, float positionZ)
 	{
 		renderRectangle({position - glm::vec2(0,width / 2.f), length, width},
-			color, {-length / 2, 0}, angleDegrees);
+			color, {-length / 2, 0}, angleDegrees, positionZ);
 	}
 
-	void Renderer2D::renderLine(const glm::vec2 start, const glm::vec2 end, const Color4f color, const float width)
+	void Renderer2D::renderLine(const glm::vec2 start, const glm::vec2 end, const Color4f color, const float width, float positionZ)
 	{
 		glm::vec2 vector = end - start;
 		float length = glm::length(vector);
 		float angle = std::atan2(vector.y, vector.x);
-		renderLine(start, -glm::degrees(angle), length, color, width);
+		renderLine(start, -glm::degrees(angle), length, color, width, positionZ);
 	}
 
 	void Renderer2D::renderRectangleOutline(const glm::vec4 position, const Color4f color, const float width,
-		const glm::vec2 origin, const float rotationDegrees)
+		const glm::vec2 origin, const float rotationDegrees, float positionZ)
 	{
 
 		glm::vec2 topLeft = position;
@@ -1103,7 +1249,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 		auto renderPoint = [&](glm::vec2 pos)
 		{
-			renderRectangle({pos - glm::vec2(1,1),width,width}, Colors_Black);
+			renderRectangle({pos - glm::vec2(1,1),width,width}, Colors_Black, {}, 0, positionZ);
 		};
 
 		//renderPoint(p1);
@@ -1116,16 +1262,16 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		//renderPoint(p8);
 
 		//add a padding so the lines align properly.
-		renderLine(p1, p2, color, width); //top line
-		renderLine(p3, p4, color, width);
-		renderLine(p5, p6, color, width); //bottom line
-		renderLine(p7, p8, color, width);
+		renderLine(p1, p2, color, width, positionZ); //top line
+		renderLine(p3, p4, color, width, positionZ);
+		renderLine(p5, p6, color, width, positionZ); //bottom line
+		renderLine(p7, p8, color, width, positionZ);
 
 	}
 
 	void  Renderer2D::renderCircleOutline(const glm::vec2 position,
 		const float size, const Color4f color,
-		const float width, const unsigned int segments)
+		const float width, const unsigned int segments, float positionZ)
 	{
 
 		auto calcPos = [&](int p)
@@ -1144,14 +1290,14 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 
 		glm::vec2 lastPos = calcPos(1);
-		renderLine(calcPos(0), lastPos, color, width);
+		renderLine(calcPos(0), lastPos, color, width, positionZ);
 		for (int i = 1; i < segments; i++)
 		{
 
 			glm::vec2 pos1 = lastPos;
 			glm::vec2 pos2 = calcPos(i + 1);
 
-			renderLine(pos1, pos2, color, width);
+			renderLine(pos1, pos2, color, width, positionZ);
 
 			lastPos = pos2;
 		}
@@ -1160,7 +1306,9 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 
 
-	void Renderer2D::render9Patch(const Rect position, const int borderSize, const Color4f color, const glm::vec2 origin, const float rotation, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords)
+	void Renderer2D::render9Patch(const Rect position, const int borderSize,
+		const Color4f color, const glm::vec2 origin, const float rotation, const Texture texture,
+		const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords, float positionZ)
 	{
 		glm::vec4 colorData[4] = {color, color, color, color};
 
@@ -1170,7 +1318,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		innerPos.y += borderSize;
 		innerPos.z -= borderSize * 2;
 		innerPos.w -= borderSize * 2;
-		renderRectangle(innerPos, texture, colorData, Position2D{0, 0}, 0, inner_texture_coords);
+		renderRectangle(innerPos, texture, colorData, Position2D{0, 0}, 0, inner_texture_coords, positionZ);
 
 		//top
 		Rect topPos = position;
@@ -1182,7 +1330,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		upperTexPos.y = textureCoords.y;
 		upperTexPos.z = inner_texture_coords.z;
 		upperTexPos.w = inner_texture_coords.y;
-		renderRectangle(topPos, texture, colorData, Position2D{0, 0}, 0, upperTexPos);
+		renderRectangle(topPos, texture, colorData, Position2D{0, 0}, 0, upperTexPos, positionZ);
 
 		//bottom
 		Rect bottom = position;
@@ -1195,7 +1343,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		bottomTexPos.y = inner_texture_coords.w;
 		bottomTexPos.z = inner_texture_coords.z;
 		bottomTexPos.w = textureCoords.w;
-		renderRectangle(bottom, texture, colorData, Position2D{0, 0}, 0, bottomTexPos);
+		renderRectangle(bottom, texture, colorData, Position2D{0, 0}, 0, bottomTexPos, positionZ);
 
 		//left
 		Rect left = position;
@@ -1207,7 +1355,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		leftTexPos.y = inner_texture_coords.y;
 		leftTexPos.z = inner_texture_coords.x;
 		leftTexPos.w = inner_texture_coords.w;
-		renderRectangle(left, texture, colorData, Position2D{0, 0}, 0, leftTexPos);
+		renderRectangle(left, texture, colorData, Position2D{0, 0}, 0, leftTexPos, positionZ);
 
 		//right
 		Rect right = position;
@@ -1220,7 +1368,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		rightTexPos.y = inner_texture_coords.y;
 		rightTexPos.z = textureCoords.z;
 		rightTexPos.w = inner_texture_coords.w;
-		renderRectangle(right, texture, colorData, Position2D{0, 0}, 0, rightTexPos);
+		renderRectangle(right, texture, colorData, Position2D{0, 0}, 0, rightTexPos, positionZ);
 
 		//topleft
 		Rect topleft = position;
@@ -1231,7 +1379,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		topleftTexPos.y = textureCoords.y;
 		topleftTexPos.z = inner_texture_coords.x;
 		topleftTexPos.w = inner_texture_coords.y;
-		renderRectangle(topleft, texture, colorData, Position2D{0, 0}, 0, topleftTexPos);
+		renderRectangle(topleft, texture, colorData, Position2D{0, 0}, 0, topleftTexPos, positionZ);
 
 		//topright
 		Rect topright = position;
@@ -1243,7 +1391,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		toprightTexPos.y = textureCoords.y;
 		toprightTexPos.z = textureCoords.z;
 		toprightTexPos.w = inner_texture_coords.y;
-		renderRectangle(topright, texture, colorData, Position2D{0, 0}, 0, toprightTexPos);
+		renderRectangle(topright, texture, colorData, Position2D{0, 0}, 0, toprightTexPos, positionZ);
 
 		//bottomleft
 		Rect bottomleft = position;
@@ -1255,7 +1403,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		bottomleftTexPos.y = inner_texture_coords.w;
 		bottomleftTexPos.z = inner_texture_coords.x;
 		bottomleftTexPos.w = textureCoords.w;
-		renderRectangle(bottomleft, texture, colorData, Position2D{0, 0}, 0, bottomleftTexPos);
+		renderRectangle(bottomleft, texture, colorData, Position2D{0, 0}, 0, bottomleftTexPos, positionZ);
 
 		//bottomright
 		Rect bottomright = position;
@@ -1268,11 +1416,13 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		bottomrightTexPos.y = inner_texture_coords.w;
 		bottomrightTexPos.z = textureCoords.z;
 		bottomrightTexPos.w = textureCoords.w;
-		renderRectangle(bottomright, texture, colorData, Position2D{0, 0}, 0, bottomrightTexPos);
+		renderRectangle(bottomright, texture, colorData, Position2D{0, 0}, 0, bottomrightTexPos, positionZ);
 
 	}
 
-	void Renderer2D::render9Patch2(const Rect position, const Color4f color, const glm::vec2 origin, const float rotation, const Texture texture, const Texture_Coords textureCoords, const Texture_Coords inner_texture_coords)
+	void Renderer2D::render9Patch2(const Rect position, const Color4f color, const glm::vec2 origin,
+		const float rotation, const Texture texture, const Texture_Coords textureCoords,
+		const Texture_Coords inner_texture_coords, float positionZ)
 	{
 		glm::vec4 colorData[4] = {color, color, color, color};
 
@@ -1317,7 +1467,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		innerPos.y += topBorder;
 		innerPos.z -= leftBorder + rightBorder;
 		innerPos.w -= topBorder + bottomBorder;
-		renderRectangle(innerPos, texture, colorData, Position2D{0, 0}, 0, inner_texture_coords);
+		renderRectangle(innerPos, texture, colorData, Position2D{0, 0}, 0, inner_texture_coords, positionZ);
 
 		//top
 		Rect topPos = position;
@@ -1329,7 +1479,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		upperTexPos.y = textureCoords.y;
 		upperTexPos.z = inner_texture_coords.z;
 		upperTexPos.w = inner_texture_coords.y;
-		renderRectangle(topPos, texture, colorData, Position2D{0, 0}, 0, upperTexPos);
+		renderRectangle(topPos, texture, colorData, Position2D{0, 0}, 0, upperTexPos, positionZ);
 
 		//Rect topPos = position;
 		//topPos.x += leftBorder;
@@ -1372,7 +1522,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		bottomTexPos.y = inner_texture_coords.w;
 		bottomTexPos.z = inner_texture_coords.z;
 		bottomTexPos.w = textureCoords.w;
-		renderRectangle(bottom, texture, colorData, Position2D{0, 0}, 0, bottomTexPos);
+		renderRectangle(bottom, texture, colorData, Position2D{0, 0}, 0, bottomTexPos, positionZ);
 
 		//left
 		Rect left = position;
@@ -1384,7 +1534,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		leftTexPos.y = inner_texture_coords.y;
 		leftTexPos.z = inner_texture_coords.x;
 		leftTexPos.w = inner_texture_coords.w;
-		renderRectangle(left, texture, colorData, Position2D{0, 0}, 0, leftTexPos);
+		renderRectangle(left, texture, colorData, Position2D{0, 0}, 0, leftTexPos, positionZ);
 
 		//right
 		Rect right = position;
@@ -1397,7 +1547,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		rightTexPos.y = inner_texture_coords.y;
 		rightTexPos.z = textureCoords.z;
 		rightTexPos.w = inner_texture_coords.w;
-		renderRectangle(right, texture, colorData, Position2D{0, 0}, 0, rightTexPos);
+		renderRectangle(right, texture, colorData, Position2D{0, 0}, 0, rightTexPos, positionZ);
 
 		//topleft
 		Rect topleft = position;
@@ -1408,7 +1558,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		topleftTexPos.y = textureCoords.y;
 		topleftTexPos.z = inner_texture_coords.x;
 		topleftTexPos.w = inner_texture_coords.y;
-		renderRectangle(topleft, texture, colorData, Position2D{0, 0}, 0, topleftTexPos);
+		renderRectangle(topleft, texture, colorData, Position2D{0, 0}, 0, topleftTexPos, positionZ);
 		//repair here?
 
 
@@ -1422,7 +1572,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		toprightTexPos.y = textureCoords.y;
 		toprightTexPos.z = textureCoords.z;
 		toprightTexPos.w = inner_texture_coords.y;
-		renderRectangle(topright, texture, colorData, Position2D{0, 0}, 0, toprightTexPos);
+		renderRectangle(topright, texture, colorData, Position2D{0, 0}, 0, toprightTexPos, positionZ);
 
 		//bottomleft
 		Rect bottomleft = position;
@@ -1434,7 +1584,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		bottomleftTexPos.y = inner_texture_coords.w;
 		bottomleftTexPos.z = inner_texture_coords.x;
 		bottomleftTexPos.w = textureCoords.w;
-		renderRectangle(bottomleft, texture, colorData, Position2D{0, 0}, 0, bottomleftTexPos);
+		renderRectangle(bottomleft, texture, colorData, Position2D{0, 0}, 0, bottomleftTexPos, positionZ);
 
 		//bottomright
 		Rect bottomright = position;
@@ -1447,7 +1597,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		bottomrightTexPos.y = inner_texture_coords.w;
 		bottomrightTexPos.z = textureCoords.z;
 		bottomrightTexPos.w = textureCoords.w;
-		renderRectangle(bottomright, texture, colorData, Position2D{0, 0}, 0, bottomrightTexPos);
+		renderRectangle(bottomright, texture, colorData, Position2D{0, 0}, 0, bottomrightTexPos, positionZ);
 
 	}
 
@@ -1475,7 +1625,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[Renderer2DBufferType::quadPositions]);
 		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
+		glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, (void *)0);
 
 		glBindBuffer(GL_ARRAY_BUFFER, buffers[Renderer2DBufferType::quadColors]);
 		glEnableVertexAttribArray(1);
@@ -1533,6 +1683,25 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		{
 			currentCamera = cameraPushPop.back();
 			cameraPushPop.pop_back();
+		}
+	}
+
+	void Renderer2D::pushCamera3D(Camera3D c)
+	{
+		camera3DPushPop.push_back(currentCamera3D);
+		currentCamera3D = c;
+	}
+
+	void Renderer2D::popCamera3D()
+	{
+		if (camera3DPushPop.empty())
+		{
+			errorFunc("Pop on an empty stack on popCamera3D", userDefinedData);
+		}
+		else
+		{
+			currentCamera3D = camera3DPushPop.back();
+			camera3DPushPop.pop_back();
 		}
 	}
 
@@ -1891,7 +2060,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 	void Renderer2D::renderText(glm::vec2 position, const char *text, const Font font,
 		const Color4f color, const float sizePixels, const float spacing, const float line_space, bool showInCenter,
 		const Color4f ShadowColor
-		, const Color4f LightColor
+		, const Color4f LightColor, float positionZ
 	)
 	{
 
@@ -1965,12 +2134,12 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 					pos *= size;
 					renderRectangle({rectangle.x + pos.x, rectangle.y + pos.y,  rectangle.z, rectangle.w},
 						font.texture, ShadowColor, glm::vec2{0, 0}, 0,
-						glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1});
+						glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1}, positionZ);
 
 				}
 
 				renderRectangle(rectangle, font.texture, colorData, glm::vec2{0, 0}, 0,
-					glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1});
+					glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1}, positionZ);
 
 				if (LightColor.w)
 				{
@@ -1979,7 +2148,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 					renderRectangle({rectangle.x + pos.x, rectangle.y + pos.y,  rectangle.z, rectangle.w},
 						font.texture,
 						LightColor, glm::vec2{0, 0}, 0,
-						glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1});
+						glm::vec4{quad.s0, quad.t0, quad.s1, quad.t1}, positionZ);
 
 				}
 
@@ -2027,11 +2196,21 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		GLfloat oldColor[4];
 		glGetFloatv(GL_COLOR_CLEAR_VALUE, oldColor);
 
+		GLfloat oldDepth;
+		glGetFloatv(GL_DEPTH_CLEAR_VALUE, &oldDepth);
+
 		glClearColor(color.r, color.g, color.b, color.a);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClearDepth(1.0f); // Optional, sets the value to which the depth buffer is cleared
+
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		// Restore old state
 		glClearColor(oldColor[0], oldColor[1], oldColor[2], oldColor[3]);
+		glClearDepth(oldDepth);
 	#else
 		glClearBufferfv(GL_COLOR, 0, &color[0]);
+		GLfloat depthClearValue = 1.0f;
+		glClearBufferfv(GL_DEPTH, 0, &depthClearValue);
 	#endif
 
 	}
