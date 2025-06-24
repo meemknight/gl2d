@@ -1249,7 +1249,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 
 		auto renderPoint = [&](glm::vec2 pos)
 		{
-			renderRectangle({pos - glm::vec2(1,1),width,width}, Colors_Black, {}, 0, positionZ);
+			renderRectangle({pos - glm::vec2(width / 2.f),width,width}, Colors_Black, {}, 0, positionZ);
 		};
 
 		//renderPoint(p1);
