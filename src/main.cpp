@@ -55,17 +55,7 @@ int main()
 
 		// Add more rendering here...
 
-		//3D
-		{
-			renderer.currentCamera3D.use = true;
-			auto &c = renderer.currentCamera3D;
-
-			//c.rotateCamera({0.001, 0});
-
-			c.position = {1,0, 3};
-			
-		}
-
+		
 
 
 		// Flush renderer (dump your rendering into the screen)

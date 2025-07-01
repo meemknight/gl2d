@@ -93,7 +93,6 @@ namespace gl2d
 	{
 		GLuint id = 0;
 		int u_sampler = -1;
-		int u_viewProjection = -1;
 
 		void bind() { glUseProgram(id); };
 
@@ -485,14 +484,9 @@ namespace gl2d
 		void popShader();
 
 		Camera currentCamera = {};
-		Camera3D currentCamera3D = {};
 		std::vector<Camera> cameraPushPop;
 		void pushCamera(Camera c = {});
 		void popCamera();
-
-		std::vector<Camera3D> camera3DPushPop;
-		void pushCamera3D(Camera3D c = {});
-		void popCamera3D();
 
 		glm::vec4 getViewRect(); //returns the view coordonates and size of this camera. Doesn't take rotation into account!
 
@@ -500,7 +494,7 @@ namespace gl2d
 		//window metrics, should be up to date at all times
 		int windowW = -1;
 		int windowH = -1;
-		void updateWindowMetrics(int w, int h) { windowW = w; windowH = h; }
+		void updateWindowMetrics(int w, int h) { windowW = std::max(w, 0); windowH = std::max(h, 0); }
 
 		//converts pixels to screen (top left) (bottom right)
 		glm::vec4 toScreen(const glm::vec4 &transform);

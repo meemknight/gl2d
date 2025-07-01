@@ -132,10 +132,9 @@ namespace gl2d
 		"out vec4 v_color;\n"
 		"out vec2 v_texture;\n"
 		"out vec2 v_positions;\n"
-		"uniform mat4 u_viewProjection = mat4(1);\n"
 		"void main()\n"
 		"{\n"
-		"	gl_Position = u_viewProjection * vec4(quad_positions, 1);\n"
+		"	gl_Position = vec4(quad_positions, 1);\n"
 		"	v_color = quad_colors;\n"
 		"	v_texture = texturePositions;\n"
 		"	v_positions = gl_Position.xy;\n"
@@ -405,7 +404,6 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		validateProgram(shader.id);
 
 		shader.u_sampler = glGetUniformLocation(shader.id, "u_sampler");
-		shader.u_viewProjection = glGetUniformLocation(shader.id, "u_viewProjection");
 
 		return shader;
 	}
@@ -783,24 +781,6 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		glBufferData(GL_ARRAY_BUFFER, renderer.texturePositions.size() * sizeof(glm::vec2), renderer.texturePositions.data(), GL_STREAM_DRAW);
 
 		bool use3D = false;
-
-		//todo 2 different shaders to properly optimize this
-		if (renderer.currentShader.u_viewProjection >= 0)
-		{
-			if (renderer.currentCamera3D.use)
-			{
-				//renderer.currentCamera3D.aspectRatio = (float)renderer.windowW / renderer.windowH;
-				renderer.currentCamera3D.aspectRatio = 1;
-
-				glUniformMatrix4fv(renderer.currentShader.u_viewProjection, 1, GL_FALSE, &renderer.currentCamera3D.getViewProjectionMatrix()[0][0]);
-				use3D = true;
-			}
-			else
-			{
-				glUniformMatrix4fv(renderer.currentShader.u_viewProjection, 1, GL_FALSE, &glm::mat4(1.f)[0][0]);
-			}
-
-		}
 
 		GLint oldDepthFunc = 0;
 		GLboolean depthTestEnabled = glIsEnabled(GL_DEPTH_TEST);
@@ -1252,14 +1232,14 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 			renderRectangle({pos - glm::vec2(width / 2.f),width,width}, Colors_Black, {}, 0, positionZ);
 		};
 
-		//renderPoint(p1);
-		//renderPoint(p2);
-		//renderPoint(p3);
-		//renderPoint(p4);
-		//renderPoint(p5);
-		//renderPoint(p6);
-		//renderPoint(p7);
-		//renderPoint(p8);
+		renderPoint(p1);
+		renderPoint(p2);
+		renderPoint(p3);
+		renderPoint(p4);
+		renderPoint(p5);
+		renderPoint(p6);
+		renderPoint(p7);
+		renderPoint(p8);
 
 		//add a padding so the lines align properly.
 		renderLine(p1, p2, color, width, positionZ); //top line
@@ -1683,25 +1663,6 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		{
 			currentCamera = cameraPushPop.back();
 			cameraPushPop.pop_back();
-		}
-	}
-
-	void Renderer2D::pushCamera3D(Camera3D c)
-	{
-		camera3DPushPop.push_back(currentCamera3D);
-		currentCamera3D = c;
-	}
-
-	void Renderer2D::popCamera3D()
-	{
-		if (camera3DPushPop.empty())
-		{
-			errorFunc("Pop on an empty stack on popCamera3D", userDefinedData);
-		}
-		else
-		{
-			currentCamera3D = camera3DPushPop.back();
-			camera3DPushPop.pop_back();
 		}
 	}
 
