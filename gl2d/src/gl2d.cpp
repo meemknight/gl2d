@@ -76,6 +76,9 @@
 // 1.6.4 work in progress
 // work in progress for 3D camera
 // 
+// 1.6.5 
+// small font rendering bug fix tweak
+// 
 ////////////////////////////////////////////////////////////////////////
 
 
@@ -514,10 +517,10 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 	{
 		this->monospaced = monospaced;
 
-		size.x = 2000;
-		size.y = 2000;
+		size.x = 2048;
+		size.y = 2048;
 		max_height = 0;
-		packedCharsBufferSize = ('~' - ' ');
+		packedCharsBufferSize = ('~' - ' ' + 1);
 
 		// Initialize stbtt_fontinfo to get font metrics
 		stbtt_fontinfo fontInfo;
@@ -543,7 +546,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 		stbtt_pack_context stbtt_context;
 		stbtt_PackBegin(&stbtt_context, fontMonochromeBuffer, size.x, size.y, 0, 2, NULL);
 		stbtt_PackSetOversampling(&stbtt_context, 2, 2);
-		stbtt_PackFontRange(&stbtt_context, ttf_data, 0, 64, ' ', '~' - ' ', packedCharsBuffer);
+		stbtt_PackFontRange(&stbtt_context, ttf_data, 0, 64, ' ', packedCharsBufferSize, packedCharsBuffer);
 		stbtt_PackEnd(&stbtt_context);
 
 		// Convert monochrome buffer to RGBA

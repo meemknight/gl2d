@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-//gl2d.h				1.6.4 work in progress
+//gl2d.h				1.6.5 work in progress
 //Copyright(c) 2020 - 2025 Luta Vlad
 //https://github.com/meemknight/gl2d
 //
@@ -296,7 +296,6 @@ namespace gl2d
 
 		void cleanup();
 	};
-
 
 #pragma endregion
 
