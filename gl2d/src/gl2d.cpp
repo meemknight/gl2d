@@ -622,6 +622,7 @@ or gladLoadGLLoader() or glewInit()?", userDefinedData);
 	void Font::cleanup()
 	{
 		texture.cleanup();
+		delete[] packedCharsBuffer;
 		*this = {};
 	}
 
